@@ -1,0 +1,3 @@
+[submodule "src/main/resources/properties"]
+	path = src/main/resources/properties
+	url = https://github.com/who-make-this/backend-environment_variables.git

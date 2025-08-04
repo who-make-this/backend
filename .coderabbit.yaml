@@ -1,0 +1,191 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: ko-KR
+tone_instructions: "Give clear feedback in a constructive tone focused on actionable improvements; write comments in formal polite Korean."
+early_access: true
+enable_free_tier: true
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  high_level_summary_in_walkthrough: true
+  sequence_diagrams: false
+  suggested_labels: false
+  auto_apply_labels: false
+  assess_linked_issues: false
+  related_issues: false
+  related_prs: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+  poem: false
+
+  auto_title_placeholder: "@coderabbitai"
+  review_status: true
+  commit_status: true
+  fail_commit_status: false
+  collapse_walkthrough: false
+  changed_files_summary: true
+
+  labeling_instructions: [ ]
+
+  path_filters:
+    - "**/*"
+    - "**/gen/**"
+    - "!**/test/**/gen/**"
+    - "!**/.git/**"
+    - "!**/target/**"
+    - "!**/build/**"
+    - "!**/.gradle/**"
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!**/out/**"
+    - "!**/.idea/**"
+    - "!**/.vscode/**"
+    - "!**/swagger.json"
+    - "!**/README.md"
+
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        - For every finding, include evidence: file path(s), line number(s), rule names (e.g., Checkstyle), and links to credible docs when relevant.
+        - Wrap any tokens starting with '@' (e.g., `@JoinColumn`) in backticks in PR comments.
+
+    - path: "**/*.sql"
+      instructions: |
+        - As a team convention, we do not specify FK constraints. Please avoid suggesting adding FK constraints in code reviews.
+        - For columns used as primary keys (PK) or foreign keys (FK), the column type must be specified as "bigint".
+        - If a column name is "id" or ends with "_id", verify that its SQL type is "bigint"; otherwise, emit a high-severity warning prefixed with "🚨🚨🚨".
+
+    - path: "**/*.java"
+      instructions: |
+        - Review against Java 21 and the rules in `/.rules/checkstyle-rules.xml`.
+        - Indentation: use spaces (no tabs), tab width = 4 spaces; files must end with Unix LF newline. (Team adaptation)
+        - Maximum line length: 120 characters.
+        - Imports: single-class imports only; allow wildcard for static imports; group imports with blank lines between sections.
+        - Assignment operators (`=`, `+=`, `-=`, etc.): always one space before and after; on line breaks, place the operator at the start of the next line.
+        - Lambda expressions: omit parentheses for a single parameter; surround `->` with spaces (`param -> expression`); use braces and explicit `return` for multi-statement bodies; choose short, clear parameter names.
+        - In multi-line expressions, place operators and ternary separators at end-of-line.
+        - Prefer Java 21 standard APIs over Guava.
+        - Do not annotate immutable local variables with `final` unless required for an inner class.
+        - Allow the `var` keyword when the value is a cast `null`.
+        - For the complete NAVER Campus Hackday conventions, see: https://naver.github.io/hackday-conventions-java/
+
+    - path: "**/main/java/**/*.java"
+      instructions: |
+        - This project is mature and must preserve a stable, backward-compatible public Java API.
+        - In the "Changes" section, list up to 25 changes to the public Java API that could affect end users; if none, explicitly state "No public Java API changes in this PR."
+        - Define the public Java API as public/protected methods on public classes plus `module-info.java`.
+        - Derive the list by deeply analyzing code flow, including through private methods and calls to Java 21 and Guava.
+        - Report:
+          * New or removed public API methods
+          * Changes to return types or parameter types
+          * Behavioral changes that may impact consumers
+        - Use `System.out.println` instead of logging frameworks.
+        - For performance reasons, the project prefers for-loops; do not suggest converting between loops and streams.
+
+    - path: "**/test/java/**/*.java"
+      instructions: |
+        - Prioritize correctness of assertions, coverage of edge cases, and clear test naming/documentation.
+        - Be lenient on style and minor optimizations in tests.
+
+  abort_on_close: true
+  disable_cache: false
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    ignore_title_keywords: [ ]
+    labels: [ ]
+    drafts: false
+    base_branches: [ ]
+
+tools:
+  shellcheck:
+    enabled: true
+  ruff:
+    enabled: false
+  markdownlint:
+    enabled: true
+  github-checks:
+    enabled: true
+    timeout_ms: 90000
+  languagetool:
+    enabled: true
+    enabled_only: false
+    level: default
+    enabled_rules: [ ]
+    disabled_rules:
+      - EN_UNPAIRED_BRACKETS
+      - EN_UNPAIRED_QUOTES
+    enabled_categories: [ ]
+    disabled_categories:
+      - TYPOS
+      - TYPOGRAPHY
+      - CASING
+  biome:
+    enabled: true
+  hadolint:
+    enabled: false
+  swiftlint:
+    enabled: false
+  phpstan:
+    enabled: false
+    level: default
+  golangci-lint:
+    enabled: false
+  yamllint:
+    enabled: true
+  gitleaks:
+    enabled: true
+  checkov:
+    enabled: false
+  detekt:
+    enabled: false
+  eslint:
+    enabled: true
+  rubocop:
+    enabled: false
+  buf:
+    enabled: false
+  regal:
+    enabled: false
+  actionlint:
+    enabled: true
+  pmd:
+    enabled: true
+  cppcheck:
+    enabled: false
+  semgrep:
+    enabled: true
+  circleci:
+    enabled: true
+  ast-grep:
+    packages: [ ]
+    rule_dirs: [ ]
+    util_dirs: [ ]
+    essential_rules: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    filePatterns: [ ]
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  jira:
+    usage: auto
+    project_keys: [ ]
+  linear:
+    usage: auto
+    team_keys: [ ]
+  pull_requests:
+    scope: auto

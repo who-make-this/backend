@@ -1,0 +1,20 @@
+name: "\U0001F528 Refactor"
+description: "리팩터링을 해야할 부분이 있나요?"
+labels: "\U0001F528 Refactor"
+body:
+  - type: textarea
+    attributes:
+      label: 🔨 이유
+      description: 리팩터링이 필요한 이유를 자세히 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ✅ 작업
+      description: 리팩터링을 위해 해야 할 작업을 정리해 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 🙋🏻 More
+      description: 더 하고 싶은 말이 있다면 작성해 주세요.

@@ -1,0 +1,20 @@
+name: "\U0001F30F Environment"
+description: "추가적인 환경설정이 필요한가요?"
+labels: "\U0001F30F Environment"
+body:
+  - type: textarea
+    attributes:
+      label: 🤔 추가해야 하는 이유
+      description: 환경설정을 추가해야 하는 이유를 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ✅ 작업
+      description: 추가할 환경설정에 대해 간략히 기록해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 🙋🏻 More
+      description: 더 하고 싶은 말이 있다면 작성해 주세요.

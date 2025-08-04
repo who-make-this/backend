@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: wmt
+  profiles:
+    group:
+      dev: dev
+      local: local
+
+---
+
+spring:
+  profiles:
+    active: local

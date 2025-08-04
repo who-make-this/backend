@@ -1,0 +1,19 @@
+services:
+  mariadb:
+    image: mariadb:lts
+    ports:
+      - "3306:3306"
+    container_name: wmt-mariadb
+    environment:
+      TZ: Asia/Seoul
+      MARIADB_USER: whomadethis
+      MARIADB_PASSWORD: ${DATASOURCE_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DATASOURCE_PASSWORD}
+      MARIADB_DATABASE: local
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ./docker-infra/mariadb/conf.d:/etc/mysql/conf.d
+      - ./docker-infra/mariadb/data:/var/lib/mysql
+      - ./docker-infra/mariadb/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
