@@ -1,0 +1,47 @@
+name: "\U0001F41E Bug"
+description: "버그가 발생했나요?"
+labels: "\U0001F41E Bug"
+body:
+  - type: textarea
+    attributes:
+      label: 🐞 버그 설명
+      description: 발생한 버그에 대해 자세히 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ✅ 예상 결과
+      description: 버그가 발생하지 않았을 때 어떤 결과를 원했는지 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ❗ 실제 결과
+      description: 버그가 발생했을 때 나타난 결과를 작성해 주세요..
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 💻 버그 재현 시나리오
+      description: 버그를 발견하게 된 상황을 단계별로 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 📄 로그
+      description: 로그가 있다면 로그를 복사하여 붙여넣어 주세요.
+      render: shell
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: 🌏 실행 환경
+      description: 버그가 발생한 실행 환경을 작성해 주세요.
+      placeholder: |
+        OS: macOS 12.2.1
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: 🙋🏻 More
+      description: 더 하고 싶은 말이 있다면 작성해 주세요.
