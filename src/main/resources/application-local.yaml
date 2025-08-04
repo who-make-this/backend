@@ -13,7 +13,7 @@ spring:
     activate:
       on-profile: local
     import:
-      - ./properties/datasource.yaml
+      - classpath:/properties/datasource.yaml
   # ---- JDBC 데이터베이스 접속 구성
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
