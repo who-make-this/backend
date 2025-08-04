@@ -1,9 +1,13 @@
-server:
-  undertow:
-    buffer-size: 16384
-    direct-buffers: true
-    eager-filter-init: true
-
 spring:
   application:
     name: wmt
+  profiles:
+    group:
+      dev: dev
+      local: local
+
+---
+
+spring:
+  profiles:
+    active: local
