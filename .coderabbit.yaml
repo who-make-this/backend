@@ -129,7 +129,7 @@ tools:
   hadolint:
     enabled: false
   swiftlint:
-    enabled: true
+    enabled: false
   phpstan:
     enabled: false
     level: default
