@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ProblemDetail handleMethodNotSupportedException(final HttpRequestMethodNotSupportedException ex) {
         ProblemDetail detail = ProblemDetail.forStatus(CommonErrorCode.INVALID_HTTP_METHOD.getHttpStatus());
-        detail.setDetail(CommonErrorCode.INVALID_ENDPOINT.getMessage());
+        detail.setDetail(CommonErrorCode.INVALID_HTTP_METHOD.getMessage());
         detail.setProperty("timestamp", Instant.now());
 
         return detail;
@@ -81,7 +81,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpectedException(final Exception ex) {
-        log.error("알 수 없는 오류가 발생했습니다: {}", ex.getMessage());
+        log.error("알 수 없는 오류가 발생했습니다: ", ex);
 
         ProblemDetail detail = ProblemDetail.forStatus(CommonErrorCode.UNEXPECTED_SERVER_ERROR.getHttpStatus());
         detail.setDetail(CommonErrorCode.UNEXPECTED_SERVER_ERROR.getMessage());
