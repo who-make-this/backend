@@ -6,7 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
 
-import university.likelion.wmt.domain.dto.response.ImageResponse;
+import university.likelion.wmt.domain.image.dto.response.ImageResponse;
 import university.likelion.wmt.domain.image.implement.ImageValidator;
 import university.likelion.wmt.domain.image.implement.ImageWriter;
 
