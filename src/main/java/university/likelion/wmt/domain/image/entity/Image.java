@@ -34,9 +34,9 @@ public class Image {
     @Column(nullable = false)
     private Long fileSize;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 128)
     private String contentType;
-    
+
     private Long refId;
 
     @Column(nullable = false)
