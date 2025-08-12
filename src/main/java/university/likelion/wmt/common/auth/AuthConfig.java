@@ -1,4 +1,4 @@
-package university.likelion.wmt.domain.user.config;
+package university.likelion.wmt.common.auth;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +12,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import lombok.RequiredArgsConstructor;
 
+import university.likelion.wmt.common.cors.CorsConfig;
 import university.likelion.wmt.common.exception.ExceptionHandlerFilter;
 
 @Configuration
@@ -32,6 +33,9 @@ public class AuthConfig {
             .formLogin(AbstractHttpConfigurer::disable)
             .rememberMe(AbstractHttpConfigurer::disable)
             .logout(AbstractHttpConfigurer::disable)
+
+            .cors(cors -> cors
+                .configurationSource(CorsConfig.corsConfigurationSource()))
 
             .addFilterBefore(exceptionHandlerFilter, UsernamePasswordAuthenticationFilter.class)
 
