@@ -19,8 +19,8 @@ import university.likelion.wmt.domain.image.service.CloudflareImagesClient;
 @Component
 @RequiredArgsConstructor
 public class ImageWriter {
-    private static String IMAGE_BASE_URI = "https://imagedelivery.net";
-    private static String IMAGE_VARIANTS_PUBLIC = "public";
+    private static final String IMAGE_BASE_URI = "https://imagedelivery.net";
+    private static final String IMAGE_VARIANTS_PUBLIC = "public";
 
     private final ImageRepository imageRepository;
     private final CloudflareImagesClient client;
