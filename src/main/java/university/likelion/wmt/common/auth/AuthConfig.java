@@ -51,8 +51,7 @@ public class AuthConfig {
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
             .authorizeHttpRequests(req -> req
-                .requestMatchers("/users/sign-in").permitAll()
-                .requestMatchers("/users/sign-up").permitAll()
+                .requestMatchers("/users/sign-up", "/users/sign-in").permitAll()
                 .anyRequest().authenticated())
 
             .exceptionHandling(ex -> ex
