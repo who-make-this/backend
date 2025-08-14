@@ -1,6 +1,7 @@
 package university.likelion.wmt.domain.user.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
@@ -12,6 +13,7 @@ import university.likelion.wmt.domain.user.repository.UserRepository;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserService {
     private final UserRepository userRepository;
 

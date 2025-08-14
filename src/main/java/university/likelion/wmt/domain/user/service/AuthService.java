@@ -8,6 +8,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,6 +26,7 @@ import university.likelion.wmt.domain.user.repository.UserRepository;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AuthService {
     private final UserRepository userRepository;
 
@@ -32,6 +34,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
 
+    @Transactional
     public TokenResponse signUp(SignUpRequest request) {
         if (userRepository.existsByUsername(request.username())) {
             throw new UserException(UserErrorCode.USERNAME_ALREADY_EXISTS);
