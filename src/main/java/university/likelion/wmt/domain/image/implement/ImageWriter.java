@@ -9,12 +9,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
 
+import university.likelion.wmt.domain.image.client.CloudflareImagesClient;
 import university.likelion.wmt.domain.image.entity.Image;
 import university.likelion.wmt.domain.image.exception.ImageErrorCode;
 import university.likelion.wmt.domain.image.exception.ImageException;
 import university.likelion.wmt.domain.image.property.ImageProperties;
 import university.likelion.wmt.domain.image.repository.ImageRepository;
-import university.likelion.wmt.domain.image.service.CloudflareImagesClient;
 
 @Component
 @RequiredArgsConstructor

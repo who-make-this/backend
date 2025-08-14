@@ -1,4 +1,4 @@
-package university.likelion.wmt.domain.image.service;
+package university.likelion.wmt.domain.image.client;
 
 import java.time.LocalDateTime;
 import java.util.List;
