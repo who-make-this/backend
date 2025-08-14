@@ -1,0 +1,7 @@
+package university.likelion.wmt.domain.user.dto.request;
+
+public record SignInRequest(
+    String username,
+    String password
+) {
+}
