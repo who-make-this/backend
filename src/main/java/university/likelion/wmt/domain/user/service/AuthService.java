@@ -1,6 +1,7 @@
 package university.likelion.wmt.domain.user.service;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -50,21 +51,25 @@ public class AuthService {
     }
 
     public TokenResponse signIn(SignInRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.username(), request.password()));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.username(), request.password()));
 
-        UserDetails userDetails = (UserDetails)authentication.getPrincipal();
-        Long userId = (userDetails instanceof JwtUserDetails jwtUserDetails) ? jwtUserDetails.getUserId() : null;
+            UserDetails userDetails = (UserDetails)authentication.getPrincipal();
+            Long userId = (userDetails instanceof JwtUserDetails jwtUserDetails) ? jwtUserDetails.getUserId() : null;
 
-        String role = authentication.getAuthorities().stream()
-            .findFirst()
-            .map(GrantedAuthority::getAuthority)
-            .orElseGet(Role.ROLE_USER::getKey);
-        Role userRole = Role.valueOf(role);
+            String role = authentication.getAuthorities().stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElseGet(Role.ROLE_USER::getKey);
+            Role userRole = Role.valueOf(role);
 
-        JwtClaims claims = new JwtClaims(userId, userRole);
-        String accessToken = jwtUtils.generateJwtToken(claims);
+            JwtClaims claims = new JwtClaims(userId, userRole);
+            String accessToken = jwtUtils.generateJwtToken(claims);
 
-        return new TokenResponse(accessToken);
+            return new TokenResponse(accessToken);
+        } catch (BadCredentialsException ex) {
+            throw new UserException(UserErrorCode.USER_INFO_INVALID);
+        }
     }
 }

@@ -2,6 +2,7 @@ package university.likelion.wmt.domain.user.controller;
 
 import jakarta.validation.Valid;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,7 +25,7 @@ public class AuthController {
     @PostMapping("/sign-up")
     public ResponseEntity<TokenResponse> signUp(@Valid @RequestBody SignUpRequest signUpRequest) {
         TokenResponse tokenResponse = authService.signUp(signUpRequest);
-        return ResponseEntity.ok(tokenResponse);
+        return ResponseEntity.status(HttpStatus.CREATED).body(tokenResponse);
     }
 
     @PostMapping("/sign-in")

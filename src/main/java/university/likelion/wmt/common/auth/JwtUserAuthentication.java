@@ -6,7 +6,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
 public class JwtUserAuthentication extends AbstractAuthenticationToken {
-    private Long userId;
+    private final Long userId;
 
     public JwtUserAuthentication(Collection<? extends GrantedAuthority> authorities, Long userId) {
         super(authorities);

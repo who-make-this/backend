@@ -49,7 +49,7 @@ public class JwtUtils {
     private Map<String, Object> generateClaims(JwtClaims jwtClaims) {
         return Map.of(
             USER_ID, jwtClaims.userId(),
-            USER_ROLE, jwtClaims.userRole());
+            USER_ROLE, jwtClaims.userRole().getKey());
     }
 
     public JwtClaims parseToken(String accessToken) {
