@@ -52,12 +52,11 @@ public class MileageLogRepositoryImpl implements MileageLogRepositoryCustom {
         List<Tuple> rows = queryFactory
             .select(mileageLog, remaining)
             .from(mileageLog)
-            .where(
-                mileageLog.userId.eq(userId)
-                    .and(mileageLog.amount.gt(0L))
-                    .and(mileageLog.type.in(MileageLogType.EARN, MileageLogType.REFUND, MileageLogType.ADJUST))
-                    .and(mileageLog.expiresAt.isNull().or(mileageLog.expiresAt.goe(now)))
-            )
+            .where(mileageLog.userId.eq(userId)
+                .and(mileageLog.amount.gt(0L))
+                .and(mileageLog.type.in(MileageLogType.EARN, MileageLogType.REFUND, MileageLogType.ADJUST))
+                .and(mileageLog.expiresAt.isNull().or(mileageLog.expiresAt.gt(now)))
+                .and(remaining.gt(0L)))
             .orderBy(mileageLog.expiresAt.asc().nullsLast(), mileageLog.id.asc())
             .setLockMode(LockModeType.PESSIMISTIC_WRITE)
             .fetch();
@@ -113,7 +112,7 @@ public class MileageLogRepositoryImpl implements MileageLogRepositoryCustom {
             .where(mileageLog.userId.eq(userId),
                 mileageLog.amount.gt(0L),
                 mileageLog.type.in(MileageLogType.EARN, MileageLogType.REFUND, MileageLogType.ADJUST),
-                mileageLog.expiresAt.isNull().or(mileageLog.expiresAt.goe(now)))
+                mileageLog.expiresAt.isNull().or(mileageLog.expiresAt.gt(now)))
             .fetchOne();
 
         //=> 사용할 수 있는 마일리지를 가진 마일리지 기록에서 이미 사용된 마일리지 양을 계산합니다.
@@ -124,7 +123,7 @@ public class MileageLogRepositoryImpl implements MileageLogRepositoryCustom {
             .where(mileageLog.userId.eq(userId),
                 mileageLog.amount.gt(0L),
                 mileageLog.type.in(MileageLogType.EARN, MileageLogType.REFUND, MileageLogType.ADJUST),
-                mileageLog.expiresAt.isNull().or(mileageLog.expiresAt.goe(now)))
+                mileageLog.expiresAt.isNull().or(mileageLog.expiresAt.gt(now)))
             .fetchOne();
 
         //=> 실제 사용할 수 있는 마일리지 양을 계산합니다.
