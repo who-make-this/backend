@@ -8,6 +8,5 @@ import university.likelion.wmt.domain.lore.entity.Lore;
 import university.likelion.wmt.domain.market.entity.Market;
 
 public interface LoreRepository extends JpaRepository<Lore, Long> {
-    List<Lore> findAllByMarketAndRequiredMissionCountLessThanEqualOrderByRequiredMissionCountAscIdAsc(Market market,
-        long completedMissionCount);
+    List<Lore> findAllByMarketOrderByRequiredMissionCountAscIdAsc(Market market);
 }

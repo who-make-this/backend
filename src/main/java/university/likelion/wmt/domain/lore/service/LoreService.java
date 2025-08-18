@@ -1,6 +1,9 @@
 package university.likelion.wmt.domain.lore.service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +26,8 @@ import university.likelion.wmt.domain.user.repository.UserRepository;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class LoreService {
+    private static final List<Long> THRESHOLDS = List.of(1L, 3L, 5L, 10L, 15L);
+
     private final UserRepository userRepository;
     private final MarketRepository marketRepository;
     private final LoreRepository loreRepository;
@@ -35,13 +40,28 @@ public class LoreService {
             .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
 
         // TODO: 미션 도메인 완성 시 완료 횟수 계산
-        long completedMissionCount = 0L;
+        long completedMissionCount = 3L;
 
-        List<Lore> loreList = loreRepository.findAllByMarketAndRequiredMissionCountLessThanEqualOrderByRequiredMissionCountAscIdAsc(
-            market, completedMissionCount);
+        List<Lore> all = loreRepository.findAllByMarketOrderByRequiredMissionCountAscIdAsc(market);
 
-        return loreList.stream()
-            .map(LoreResponse::from)
-            .toList();
+        Map<Long, LoreResponse.LoreData> unlocked = new LinkedHashMap<>();
+        for (Lore lore : all) {
+            long required = lore.getRequiredMissionCount();
+            if (required > completedMissionCount) {
+                continue;
+            }
+
+            unlocked.put(required, new LoreResponse.LoreData(lore.getTitle(), lore.getContent()));
+        }
+        for (long t : THRESHOLDS) {
+            unlocked.putIfAbsent(t, null);
+        }
+
+        List<LoreResponse> responses = new ArrayList<>(THRESHOLDS.size());
+        for (long t : THRESHOLDS) {
+            responses.add(new LoreResponse(t, unlocked.get(t)));
+        }
+
+        return responses;
     }
 }
