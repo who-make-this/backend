@@ -2,6 +2,7 @@ package university.likelion.wmt.common.exception;
 
 import java.net.URI;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -30,7 +31,7 @@ public class GlobalExceptionHandler {
         }
         detail.setDetail(ex.getMessage());
         detail.setProperty("code", ex.getCode());
-        detail.setProperty("timestamp", Instant.now());
+        detail.setProperty("timestamp", Instant.now().atZone(ZoneId.of("Asia/Seoul")));
 
         return detail;
     }
@@ -39,7 +40,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleMethodNotSupportedException(final HttpRequestMethodNotSupportedException ex) {
         ProblemDetail detail = ProblemDetail.forStatus(CommonErrorCode.INVALID_HTTP_METHOD.getHttpStatus());
         detail.setDetail(CommonErrorCode.INVALID_HTTP_METHOD.getMessage());
-        detail.setProperty("timestamp", Instant.now());
+        detail.setProperty("timestamp", Instant.now().atZone(ZoneId.of("Asia/Seoul")));
 
         return detail;
     }
@@ -48,7 +49,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleNotFoundException(final NoResourceFoundException ex) {
         ProblemDetail detail = ProblemDetail.forStatus(CommonErrorCode.INVALID_ENDPOINT.getHttpStatus());
         detail.setDetail(CommonErrorCode.INVALID_ENDPOINT.getMessage());
-        detail.setProperty("timestamp", Instant.now());
+        detail.setProperty("timestamp", Instant.now().atZone(ZoneId.of("Asia/Seoul")));
 
         return detail;
     }
@@ -65,7 +66,7 @@ public class GlobalExceptionHandler {
         ProblemDetail detail = ProblemDetail.forStatus(CommonErrorCode.INVALID_REQUEST_BODY.getHttpStatus());
         detail.setDetail(CommonErrorCode.INVALID_REQUEST_BODY.getMessage());
         detail.setProperty("errors", errors);
-        detail.setProperty("timestamp", Instant.now());
+        detail.setProperty("timestamp", Instant.now().atZone(ZoneId.of("Asia/Seoul")));
 
         return detail;
     }
@@ -74,7 +75,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleHttpMessageNotReadableException(final HttpMessageNotReadableException ex) {
         ProblemDetail detail = ProblemDetail.forStatus(CommonErrorCode.INVALID_REQUEST_BODY.getHttpStatus());
         detail.setDetail(CommonErrorCode.INVALID_REQUEST_BODY.getMessage());
-        detail.setProperty("timestamp", Instant.now());
+        detail.setProperty("timestamp", Instant.now().atZone(ZoneId.of("Asia/Seoul")));
 
         return detail;
     }
@@ -85,7 +86,7 @@ public class GlobalExceptionHandler {
 
         ProblemDetail detail = ProblemDetail.forStatus(CommonErrorCode.UNEXPECTED_SERVER_ERROR.getHttpStatus());
         detail.setDetail(CommonErrorCode.UNEXPECTED_SERVER_ERROR.getMessage());
-        detail.setProperty("timestamp", Instant.now());
+        detail.setProperty("timestamp", Instant.now().atZone(ZoneId.of("Asia/Seoul")));
 
         return detail;
     }

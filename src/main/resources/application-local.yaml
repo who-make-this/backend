@@ -1,10 +1,11 @@
 server:
+  # ---- Undertow 구성
   undertow:
-    # ---- 요청 또는 응답 버퍼의 크기를 설정합니다.
+    # 요청 또는 응답 버퍼의 크기를 설정합니다.
     buffer-size: 16384
-    # ---- Direct ByteBuffer를 사용하여 메모리 할당을 최적화합니다.
+    # Direct ByteBuffer를 사용하여 메모리 할당을 최적화합니다.
     direct-buffers: true
-    # ---- 서버 시작 시 필터를 미리 초기화합니다.
+    # 서버 시작 시 필터를 미리 초기화합니다.
     eager-filter-init: true
 
 spring:
@@ -16,6 +17,9 @@ spring:
       - classpath:/properties/datasource.yaml
       - classpath:/properties/images.yaml
       - classpath:/properties/token.yaml
+  # ---- Jackson 구성
+  jackson:
+    time-zone: Asia/Seoul
   # ---- JDBC 데이터베이스 접속 구성
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
