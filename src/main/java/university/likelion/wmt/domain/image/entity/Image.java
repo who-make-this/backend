@@ -28,7 +28,8 @@ public class Image {
     @Tsid
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 36)
+    //cfName 길이 수정
+    @Column(nullable = false, unique = true, length = 255)
     private String cfName;
 
     @Column(nullable = false)

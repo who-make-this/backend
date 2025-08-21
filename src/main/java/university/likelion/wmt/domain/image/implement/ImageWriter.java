@@ -52,4 +52,12 @@ public class ImageWriter {
         client.delete(image.getCfName());
         imageRepository.delete(image);
     }
+    // 새롭게 추가된 메서드: cfName을 받아 이미지 URL을 생성하고 반환합니다.
+    public String createImageUrl(String cfName) {
+        return String.format("%s/%s/%s/%s",
+            IMAGE_BASE_URI,
+            properties.getAccountHash(),
+            cfName,
+            IMAGE_VARIANTS_PUBLIC);
+    }
 }
