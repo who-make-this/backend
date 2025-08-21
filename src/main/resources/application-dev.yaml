@@ -10,9 +10,9 @@ server:
 
 spring:
   config:
-    # `application-local.yml`이 활성화되려면 `local` 프로필이어야 합니다.
+    # `application-dev.yml`이 활성화되려면 `dev` 프로필이어야 합니다.
     activate:
-      on-profile: local
+      on-profile: dev
     import:
       - classpath:/properties/datasource.yaml
       - classpath:/properties/images.yaml
