@@ -1,16 +1,5 @@
 package university.likelion.wmt.domain.report.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import university.likelion.wmt.domain.image.implement.ImageWriter;
-import university.likelion.wmt.domain.mission.entity.Mission;
-import university.likelion.wmt.domain.report.dto.response.ReportResponse;
-import university.likelion.wmt.domain.report.util.DiaryPromptBuilder;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -18,6 +7,20 @@ import java.net.http.HttpResponse;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import university.likelion.wmt.domain.image.implement.ImageWriter;
+import university.likelion.wmt.domain.mission.entity.Mission;
+import university.likelion.wmt.domain.report.dto.response.ReportResponse;
+import university.likelion.wmt.domain.report.util.DiaryPromptBuilder;
 
 @Slf4j
 @Service
@@ -27,20 +30,22 @@ public class DiaryGeminiService {
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ImageWriter imageWriter;
 
-    @Value("${gemini.api.key}")
+    @Value("${wmt.gemini.api.key}")
     private String apiKey;
 
     public String getWeatherFromGemini(LocalDate date) {
         try {
             String weatherPrompt = String.format("대한민국 구미시의 %s 날씨는 어때? 날씨 정보만 한 문장으로 간결하게 답변해줘.", date.toString());
-            String geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" + apiKey;
+            String geminiApiUrl =
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key="
+                    + apiKey;
 
             String payload = objectMapper.writeValueAsString(
                 new Object() {
-                    public final Object[] contents = new Object[]{
+                    public final Object[] contents = new Object[] {
                         new Object() {
                             public final String role = "user";
-                            public final Object[] parts = new Object[]{
+                            public final Object[] parts = new Object[] {
                                 new Object() {
                                     public final String text = weatherPrompt;
                                 }
@@ -87,20 +92,22 @@ public class DiaryGeminiService {
                 .build();
             HttpResponse<byte[]> imageResponse = httpClient.send(imageRequest, HttpResponse.BodyHandlers.ofByteArray());
 
-            if(imageResponse.statusCode() != 200) {
+            if (imageResponse.statusCode() != 200) {
                 log.error("이미지 다운로드 실패. Status: {}", imageResponse.statusCode());
                 return "일기 생성에 실패했씁니다. (이미지 오류)";
             }
             byte[] imageBytes = imageResponse.body();
             String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
-            String geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" + apiKey;
+            String geminiApiUrl =
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key="
+                    + apiKey;
             String payload = objectMapper.writeValueAsString(
                 new Object() {
-                    public final Object[] contents = new Object[]{
+                    public final Object[] contents = new Object[] {
                         new Object() {
                             public final String role = "user";
-                            public final Object[] parts = new Object[]{
+                            public final Object[] parts = new Object[] {
                                 new Object() {
                                     public final String text = journalPrompt;
                                 },
@@ -129,7 +136,13 @@ public class DiaryGeminiService {
             }
 
             JsonNode rootNode = objectMapper.readTree(response.body());
-            String journalText = rootNode.path("candidates").path(0).path("content").path("parts").path(0).path("text").asText();
+            String journalText = rootNode.path("candidates")
+                .path(0)
+                .path("content")
+                .path("parts")
+                .path(0)
+                .path("text")
+                .asText();
 
             return journalText;
         } catch (Exception e) {

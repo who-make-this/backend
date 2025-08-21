@@ -1,19 +1,21 @@
 package university.likelion.wmt.domain.mission.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import university.likelion.wmt.domain.mission.util.MissionPromptBuilder;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Base64;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.extern.slf4j.Slf4j;
+
+import university.likelion.wmt.domain.mission.util.MissionPromptBuilder;
 
 @Slf4j
 @Service
@@ -21,7 +23,7 @@ public class MissionGeminiService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
-    @Value("${gemini.api.key}")
+    @Value("${wmt.gemini.api.key}")
     private String apiKey;
 
     //미션 메서드만 남기기 - 미션 생성 메서드 삭제
@@ -31,13 +33,15 @@ public class MissionGeminiService {
             String base64Image = Base64.getEncoder().encodeToString(imageBytes); //Base64 문자열로 인코딩
 
             String prompt = MissionPromptBuilder.buildAuthenticationPrompt(missionContent, category);
-            String geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" + apiKey;
+            String geminiApiUrl =
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key="
+                    + apiKey;
             String payload = objectMapper.writeValueAsString(
                 new Object() {
-                    public final Object[] contents = new Object[]{
+                    public final Object[] contents = new Object[] {
                         new Object() {
                             public final String role = "user";
-                            public final Object[] parts = new Object[]{
+                            public final Object[] parts = new Object[] {
                                 new Object() {
                                     public final String text = prompt;
                                 },
@@ -63,7 +67,13 @@ public class MissionGeminiService {
                 return "ERROR";
             }
             JsonNode rootNode = objectMapper.readTree(response.body());
-            String responseText = rootNode.path("candidates").path(0).path("content").path("parts").path(0).path("text").asText();
+            String responseText = rootNode.path("candidates")
+                .path(0)
+                .path("content")
+                .path("parts")
+                .path(0)
+                .path("text")
+                .asText();
 
             return responseText.trim().toUpperCase();
 

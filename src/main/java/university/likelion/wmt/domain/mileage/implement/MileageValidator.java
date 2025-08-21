@@ -21,6 +21,10 @@ public class MileageValidator {
     private final MileageLogRepository mileageLogRepository;
     private final MileageApplyRepository mileageApplyRepository;
 
+    public static long getMonthlyEarnCap() {
+        return MONTHLY_EARN_CAP;
+    }
+
     public void validatePositiveAmount(Long amount) {
         if (amount <= 0L) {
             throw new IllegalArgumentException("적립 마일리지는 양수여야 합니다.");
