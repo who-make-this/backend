@@ -1,15 +1,33 @@
 package university.likelion.wmt.domain.mission.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+
 import org.hibernate.annotations.DynamicUpdate;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import university.likelion.wmt.domain.image.entity.Image;
 import university.likelion.wmt.domain.market.entity.Market;
 import university.likelion.wmt.domain.user.entity.User;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "mission")
@@ -17,7 +35,6 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
 @DynamicUpdate
 @EntityListeners(AuditingEntityListener.class)
 public class Mission {
@@ -54,10 +71,25 @@ public class Mission {
     private Long reportId;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "image_id" , referencedColumnName = "id")
+    @JoinColumn(name = "image_id", referencedColumnName = "id")
     private Image image;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "failure_reason_id")
     private MissionFailureReason failureReason;
+
+    @Builder
+    public Mission(User user, Market market, String category, String missionTitle, String content, boolean completed,
+        LocalDateTime createdAt, Long reportId, Image image, MissionFailureReason failureReason) {
+        this.user = user;
+        this.market = market;
+        this.category = category;
+        this.missionTitle = missionTitle;
+        this.content = content;
+        this.completed = completed;
+        this.createdAt = createdAt;
+        this.reportId = reportId;
+        this.image = image;
+        this.failureReason = failureReason;
+    }
 }

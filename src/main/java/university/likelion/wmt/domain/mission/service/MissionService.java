@@ -1,12 +1,23 @@
 package university.likelion.wmt.domain.mission.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import university.likelion.wmt.domain.image.entity.Image;
 import university.likelion.wmt.domain.image.implement.ImageValidator;
 import university.likelion.wmt.domain.image.implement.ImageWriter;
@@ -33,14 +44,6 @@ import university.likelion.wmt.domain.user.exception.UserErrorCode;
 import university.likelion.wmt.domain.user.exception.UserException;
 import university.likelion.wmt.domain.user.repository.UserRepository;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -56,10 +59,10 @@ public class MissionService {
     private final MarketRepository marketRepository;
     private final MissionFailureReasonRepository missionFailureReasonRepository;
 
-    @Value("${hackathon.mode.start-date}")
+    @Value("${wmt.mission.hackathon.mode.start-date}")
     private String hackathonStartDate;
 
-    @Value("${hackathon.mode.end-date}")
+    @Value("${wmt.mission.hackathon.mode.end-date}")
     private String hackathonEndDate;
 
     @PostConstruct
@@ -68,13 +71,13 @@ public class MissionService {
         MissionPromptBuilder.setFailureReasons(reasons);
     }
 
-    private User findUserById(Long userId){
+    private User findUserById(Long userId) {
         return userRepository.findById(userId)
             .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
     }
 
     // 해커톤 기간인지 확인하는 헬퍼 메서드
-    private boolean isDuringHackathon(){
+    private boolean isDuringHackathon() {
         LocalDate today = LocalDate.now();
         LocalDate start = LocalDate.parse(hackathonStartDate);
         LocalDate end = LocalDate.parse(hackathonEndDate);
@@ -107,7 +110,7 @@ public class MissionService {
             mission.getCategory(),
             imageFile
         );
-        if("ERROR".equals(geminiResponse)){
+        if ("ERROR".equals(geminiResponse)) {
             throw new MissionException(MissionErrorCode.AI_GENERATION_FAILED);
         }
         boolean isSuccess = geminiResponse.startsWith("YES");
@@ -115,8 +118,8 @@ public class MissionService {
         mission.setCompleted(isSuccess);
         mission.setImage(image);
 
-        if(!isSuccess){
-            String failureCode = geminiResponse.substring(geminiResponse.indexOf(":")+1);
+        if (!isSuccess) {
+            String failureCode = geminiResponse.substring(geminiResponse.indexOf(":") + 1);
             MissionFailureReason failureReason = missionFailureReasonRepository.findByCode(failureCode)
                 .orElse(null);
             mission.setFailureReason(failureReason);
@@ -124,9 +127,10 @@ public class MissionService {
         missionRepository.save(mission);
 
         //미션 완료 시 마일리지 UP (※임시 설정 * 100 포인트)
-        if(isSuccess) {
+        if (isSuccess) {
             long earnedPoints = 100L;
-            mileageWriter.earn(user.getId(), earnedPoints, LocalDateTime.now().plusYears(1), MileageLogReferenceType.MISSION, mission.getId());
+            mileageWriter.earn(user.getId(), earnedPoints, LocalDateTime.now().plusYears(1),
+                MileageLogReferenceType.MISSION, mission.getId());
             log.info("마일리지 적립 완료. 사용자 ID: {}", user.getId());
         }
 
@@ -160,6 +164,7 @@ public class MissionService {
         String cfName = urlWithoutVariant.substring(urlWithoutVariant.lastIndexOf('/') + 1);
         return cfName;
     }
+
     @Transactional
     public MissionResponse startUserExploration(Long userId, Long marketId) {
         log.info("미션 일괄 생성 시작. (사용자: {}, 시장: {}, 개수: {})", userId, marketId, 10);
@@ -171,14 +176,14 @@ public class MissionService {
                 throw new MissionException(MissionErrorCode.ALREADY_STARTED_TODAY);
             }
         }
-        user.setLastExplorationStartDate(LocalDate.now());
+        user.startExploration();
         userRepository.save(user);
 
         missionRepository.deleteByUserAndCompletedFalse(user);
         List<MasterMission> masterMissions = getRandomMasterMissions(10);
 
         Market market = marketRepository.findById(marketId)
-                .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
+            .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
 
         masterMissions.forEach(mm -> {
             Mission newMission = Mission.builder()
@@ -205,7 +210,7 @@ public class MissionService {
         List<MasterMission> masterMissions = getRandomMasterMissions(10);
 
         Market market = marketRepository.findById(marketId)
-                .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
+            .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
 
         masterMissions.forEach(mm -> {
             Mission newMission = Mission.builder()
@@ -260,7 +265,7 @@ public class MissionService {
     }
 
     @Transactional
-    public void endUserExploration(Long userId){
+    public void endUserExploration(Long userId) {
         log.info("사용자 탐험 종료 처리. 사용자: {}", userId);
         User user = findUserById(userId);
         missionRepository.deleteByUserAndCompletedFalse(user);
@@ -274,6 +279,7 @@ public class MissionService {
 
         return missionRepository.countByUserAndCompletedTrue(user, market);
     }
+
     @Transactional(readOnly = true)
     public List<MissionResponse> getMissionsByMarket(Long marketId) {
         List<Mission> missions = missionRepository.findByMarketId(marketId);

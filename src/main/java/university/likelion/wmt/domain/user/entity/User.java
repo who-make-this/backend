@@ -1,5 +1,6 @@
 package university.likelion.wmt.domain.user.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -44,6 +45,9 @@ public class User {
     @Column(name = "role", nullable = false)
     private Role role;
 
+    @Column(name = "last_exploration_start_date")
+    private LocalDate lastExplorationStartDate;
+
     @Column(name = "created_at", nullable = false)
     @CreatedDate
     private LocalDateTime createdAt;
@@ -58,5 +62,9 @@ public class User {
         this.password = password;
         this.nickname = nickname;
         this.role = Role.ROLE_USER;
+    }
+
+    public void startExploration() {
+        this.lastExplorationStartDate = LocalDate.now();
     }
 }

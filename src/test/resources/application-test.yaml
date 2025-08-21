@@ -21,6 +21,14 @@ spring:
       max-request-size: 10MB
 
 wmt:
+  mission:
+    hackathon:
+      mode:
+        start-date: '2025-08-18'
+        end-date: '2025-08-26'
+  gemini:
+    api:
+      key: 000000000000000000000000000000000000000
   cloudflare:
     images:
       email: test@example.com
