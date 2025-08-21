@@ -1,0 +1,46 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+  jackson:
+    time-zone: Asia/Seoul
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:test;MODE=MariaDB;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;
+    username: sa
+    password:
+  jpa:
+    properties:
+      hibernate:
+        default_batch_fetch_size: 100
+        hbm2ddl.auto: create-drop
+    open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+wmt:
+  cloudflare:
+    images:
+      email: test@localhost
+      account-id: 00000000000000000000000000000000
+      account-hash: 0000000000000000000000
+      api-key: 0000000000000000000000000000000000000000
+      allowed-mime:
+        - image/png
+        - image/jpeg
+        - image/heic
+        - image/heif
+        - image/webp
+      size-limit: 10MB
+  jwt:
+    secret-key: "0000000000000000000000000000000000000000000="
+    access-token-seconds: 600 # 10분
+
+logging:
+  level:
+    org.springframework.web: debug
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+    org.hibernate.orm.jdbc.extract: trace
