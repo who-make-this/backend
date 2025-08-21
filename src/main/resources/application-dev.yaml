@@ -1,0 +1,56 @@
+server:
+  # ---- Undertow 구성
+  undertow:
+    # 요청 또는 응답 버퍼의 크기를 설정합니다.
+    buffer-size: 16384
+    # Direct ByteBuffer를 사용하여 메모리 할당을 최적화합니다.
+    direct-buffers: true
+    # 서버 시작 시 필터를 미리 초기화합니다.
+    eager-filter-init: true
+
+spring:
+  config:
+    # `application-dev.yml`이 활성화되려면 `dev` 프로필이어야 합니다.
+    activate:
+      on-profile: dev
+    import:
+      - classpath:/properties/datasource.yaml
+      - classpath:/properties/images.yaml
+      - classpath:/properties/token.yaml
+  # ---- Jackson 구성
+  jackson:
+    time-zone: Asia/Seoul
+  # ---- JDBC 데이터베이스 접속 구성
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: ${wmt.datasource.url}
+    username: ${wmt.datasource.username}
+    password: ${wmt.datasource.password}
+  # ---- Spring Data JPA 구성
+  jpa:
+    properties:
+      hibernate:
+        # IN 절 PreparedStatement 개수를 14개로 설정합니다. (100, 50, 25, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+        # 다른 연관 엔티티를 지연 로딩 시 추가 쿼리 실행 횟수(N+1 문제에서 N의 개수)를 줄입니다.
+        # 한 번에 하나의 쿼리만 실행되도록 하려면 조회 시 연관된 엔티티를 함께 조회하십시오.
+        default_batch_fetch_size: 100
+        # 애플리케이션 시작 시 데이터베이스에 엔티티와 테이블 매핑 정보 변경분을 반영합니다.
+        hbm2ddl.auto: update
+    # 영속성 컨텍스트가 데이터베이스 커넥션을 트랜잭션 종료 즉시 반환합니다.
+    open-in-view: false
+  # ---- Spring Data JPA 구성
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+logging:
+  level:
+    # ---- HTTP 트래픽 흐름을 살펴봅니다.
+    org.springframework.web: debug
+    # ---- Hibernate가 실행할 질의문을 살펴봅니다.
+    org.hibernate.SQL: debug
+    # ---- 질의문에 바인딩되는 파라미터를 살펴봅니다.
+    org.hibernate.orm.jdbc.bind: trace
+    # ---- 질의문 실행 결과를 살펴봅니다.
+    org.hibernate.orm.jdbc.extract: trace
