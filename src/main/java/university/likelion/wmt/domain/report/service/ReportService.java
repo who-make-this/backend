@@ -191,6 +191,14 @@ public class ReportService {
         log.info("조회된 완료 미션 이미지 수: {}", images.size());
         return images;
     }
+    private String determineUserType(User user) {
+        Map<String, Long> categoryCounts = missionRepository.findByUserAndCompletedTrue(user).stream()
+            .collect(Collectors.groupingBy(Mission::getCategory, Collectors.counting()));
+        return categoryCounts.entrySet().stream()
+            .max(Comparator.comparingLong(Map.Entry::getValue))
+            .map(Map.Entry::getKey)
+            .orElse("입문자");
+    }
 
     @Transactional(readOnly = true)
     public List<ReportResponse> getMyReports(Long userId) {
@@ -225,6 +233,8 @@ public class ReportService {
             throw new RuntimeException("JSON 문자열을 미션 카테고리 맵으로 변환하는 중 오류가 발생했습니다.", e);
         }
 
+        String userType = determineUserType(report.getUser());
+
         return new ReportResponse(
             report.getId(),
             report.getExplorationDate(),
@@ -235,7 +245,8 @@ public class ReportService {
             earnedMileage,
             remainingMonthlyMileage,
             report.getReportTitle(),
-            report.getJournalContent()
+            report.getJournalContent(),
+            userType
         );
     }
 
