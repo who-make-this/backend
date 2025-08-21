@@ -14,5 +14,6 @@ public record ReportResponse(
     Long earnedMileage,
     Long remainingMonthlyMileage,
     String reportTitle,
-    String journalContent
+    String journalContent,
+    String userType
 ) {}
