@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -17,8 +16,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import university.likelion.wmt.domain.image.entity.Image;
-import university.likelion.wmt.domain.image.implement.ImageWriter;
 import university.likelion.wmt.domain.market.entity.Market;
 import university.likelion.wmt.domain.market.exception.MarketErrorCode;
 import university.likelion.wmt.domain.market.exception.MarketException;
@@ -30,11 +27,8 @@ import university.likelion.wmt.domain.mission.entity.Mission;
 import university.likelion.wmt.domain.mission.exception.MissionErrorCode;
 import university.likelion.wmt.domain.mission.exception.MissionException;
 import university.likelion.wmt.domain.mission.respository.MissionRepository;
-import university.likelion.wmt.domain.report.dto.response.DiaryResponse;
 import university.likelion.wmt.domain.report.dto.response.ReportResponse;
 import university.likelion.wmt.domain.report.entity.Report;
-import university.likelion.wmt.domain.report.exception.ReportErrorCode;
-import university.likelion.wmt.domain.report.exception.ReportException;
 import university.likelion.wmt.domain.report.repository.ReportRepository;
 import university.likelion.wmt.domain.user.entity.User;
 import university.likelion.wmt.domain.user.exception.UserErrorCode;
@@ -50,14 +44,13 @@ public class ReportService {
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
     private final DiaryGeminiService diaryGeminiService;
-    private final ImageWriter imageWriter;
     private final MarketRepository marketRepository;
     private final MileageLogRepository mileageLogRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Transactional
-    public ReportResponse generateReport(Long userId, String selectedImageCfName, Long marketId) {
-        log.info("리포트 생성을 시작합니다. userId: {}, selectedImageCfName: {}, marketId: {}", userId, selectedImageCfName,
+    public ReportResponse generateReport(Long userId, String selectedImageUrl, Long marketId) {
+        log.info("리포트 생성을 시작합니다. userId: {}, selectedImageUrl: {}, marketId: {}", userId, selectedImageUrl,
             marketId);
 
         User user = userRepository.findById(userId)
@@ -71,25 +64,6 @@ public class ReportService {
             log.warn("완료된 미션이 없습니다. userId: {}", userId);
             throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
         }
-
-        log.info("완료된 미션 목록에 {} 이미지가 포함되어 있는지 확인 중...", selectedImageCfName);
-        Optional<Mission> selectedMissionOptional = missionRepository.findByUserAndImageCfName(user,
-            selectedImageCfName);
-
-        log.info("findByUserAndImageCfName 결과: {}", selectedMissionOptional.isPresent() ? "미션 찾음" : "미션 찾지 못함");
-
-        Mission selectedMission = selectedMissionOptional
-            .orElseThrow(() -> {
-                log.error("사용자 {}의 미션 중 cfName {}에 해당하는 이미지를 찾을 수 없습니다.", userId, selectedImageCfName);
-                return new ReportException(ReportErrorCode.IMAGE_NOT_FOUND);
-            });
-
-        Image selectedImage = selectedMission.getImage();
-        if (selectedImage == null) {
-            log.error("미션 {}에 연결된 Image 엔티티가 null입니다.", selectedMission.getId());
-            throw new ReportException(ReportErrorCode.IMAGE_NOT_FOUND);
-        }
-
         LocalDateTime startDateTime = completedMissions.stream()
             .min(Comparator.comparing(Mission::getCreatedAt))
             .map(Mission::getCreatedAt)
@@ -132,7 +106,7 @@ public class ReportService {
             .endTime(endDateTime)
             .completedMissionsByCategoriesJson(missionsByCategoryJson)
             .totalScore(totalScore)
-            .mainImage(selectedImageCfName)
+            .mainImage(selectedImageUrl)
             .reportTitle(reportTitle)
             .build();
         reportRepository.save(report);
@@ -146,27 +120,16 @@ public class ReportService {
 
         String weatherInfo = diaryGeminiService.getWeatherFromGemini(startDateTime.toLocalDate());
         String journalText = diaryGeminiService.generateJournal(
-            toReportResponse(report, earnedMileageForReport, remainingMonthlyMileage), completedMissions, weatherInfo,
-            selectedImageCfName);
+            toReportResponse(report, earnedMileageForReport, remainingMonthlyMileage, selectedImageUrl), completedMissions, weatherInfo,
+            selectedImageUrl);
         report.setJournalContent(journalText);
         reportRepository.save(report);
 
         missionRepository.deleteByUserAndCompletedFalse(user);
         log.info("완료되지 않은 미션 삭제 완료.");
 
-        return toReportResponse(report, earnedMileageForReport, remainingMonthlyMileage);
+        return toReportResponse(report, earnedMileageForReport, remainingMonthlyMileage, selectedImageUrl);
     }
-
-    public DiaryResponse getDiary(Long reportId) {
-        Report report = reportRepository.findById(reportId)
-            .orElseThrow(() -> new ReportException(ReportErrorCode.REPORT_NOT_FOUND));
-
-        return new DiaryResponse(
-            report.getExplorationDate(),
-            report.getJournalContent()
-        );
-    }
-
     @Transactional
     public List<CompletedMissionImageResponse> getCompletedMissionImages(Long userId) {
         User user = userRepository.findById(userId)
@@ -177,11 +140,10 @@ public class ReportService {
         List<CompletedMissionImageResponse> images = missionRepository.findByUserAndCompletedTrue(user).stream()
             .filter(mission -> mission.getImage() != null)
             .map(mission -> {
-                String cfName = mission.getImage().getCfName();
-                String imageUrl = imageWriter.createImageUrl(cfName);
+                String imageUrl = mission.getImage().getImageUrl();
                 return new CompletedMissionImageResponse(
                     mission.getId(),
-                    cfName,
+                    mission.getImage().getCfName(),
                     imageUrl,
                     mission.getCreatedAt()
                 );
@@ -217,12 +179,12 @@ public class ReportService {
             .map(report -> {
                 List<Mission> reportMissions = missionRepository.findByReportId(report.getId());
                 Long earnedMileageForReport = (long)reportMissions.size() * 100L;
-                return toReportResponse(report, earnedMileageForReport, remainingMonthlyMileage);
+                return toReportResponse(report, earnedMileageForReport, remainingMonthlyMileage, report.getMainImage());
             })
             .collect(Collectors.toList());
     }
 
-    private ReportResponse toReportResponse(Report report, Long earnedMileage, Long remainingMonthlyMileage) {
+    private ReportResponse toReportResponse(Report report, Long earnedMileage, Long remainingMonthlyMileage, String mainImageUrl) {
         Map<String, Integer> completedMissionsByCategories;
         try {
             completedMissionsByCategories = objectMapper.readValue(report.getCompletedMissionsByCategoriesJson(),
@@ -246,7 +208,8 @@ public class ReportService {
             remainingMonthlyMileage,
             report.getReportTitle(),
             report.getJournalContent(),
-            userType
+            userType,
+            mainImageUrl
         );
     }
 

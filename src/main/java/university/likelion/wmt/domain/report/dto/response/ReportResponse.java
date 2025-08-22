@@ -15,5 +15,6 @@ public record ReportResponse(
     Long remainingMonthlyMileage,
     String reportTitle,
     String journalContent,
-    String userType
+    String userType,
+    String mainImageUrl
 ) {}

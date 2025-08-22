@@ -16,6 +16,8 @@ public class MissionResponse {
     private boolean completed;
     private LocalDateTime createdAt;
     private String failureReason;
+    private Integer missionNumbers;
+    private String imageUrl;
 
     public MissionResponse(Long id,
                            String category,
@@ -23,7 +25,9 @@ public class MissionResponse {
                            String missionTitle,
                            boolean completed,
                            LocalDateTime createdAt,
-                           String failureReason) {
+                           String failureReason,
+                           Integer missionNumbers,
+                           String imageUrl) {
         this.id = id;
         this.category = category;
         this.content = content;
@@ -31,5 +35,7 @@ public class MissionResponse {
         this.completed = completed;
         this.createdAt = createdAt;
         this.failureReason = failureReason;
+        this.missionNumbers = missionNumbers;
+        this.imageUrl = imageUrl;
     }
 }

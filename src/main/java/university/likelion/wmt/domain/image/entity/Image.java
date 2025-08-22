@@ -1,3 +1,4 @@
+// university.likelion.wmt.domain.image.entity.Image.java
 package university.likelion.wmt.domain.image.entity;
 
 import java.time.LocalDateTime;
@@ -15,14 +16,17 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import io.hypersistence.utils.hibernate.id.Tsid;
 
 @Entity
 @Table(name = "images")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @EntityListeners(AuditingEntityListener.class)
+@Builder
 public class Image {
     @Id
     @Tsid
@@ -31,6 +35,9 @@ public class Image {
     //cfName 길이 수정
     @Column(nullable = false, unique = true, length = 255)
     private String cfName;
+
+    @Column(name = "image_url", nullable = false)
+    private String imageUrl;
 
     @Column(nullable = false)
     private Long fileSize;
@@ -44,10 +51,5 @@ public class Image {
     @CreatedDate
     private LocalDateTime createdAt;
 
-    @Builder
-    public Image(String cfName, Long fileSize, String contentType) {
-        this.cfName = cfName;
-        this.fileSize = fileSize;
-        this.contentType = contentType;
-    }
+
 }

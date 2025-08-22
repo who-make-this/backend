@@ -6,6 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ReportRequest {
-    private String selectedImageCfName;
+    private String selectedImageUrl;
     private Long marketId; // marketId 필드 추가
 }

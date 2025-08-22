@@ -7,7 +7,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import university.likelion.wmt.domain.mission.dto.response.CompletedMissionImageResponse;
 import university.likelion.wmt.domain.report.dto.request.ReportRequest;
-import university.likelion.wmt.domain.report.dto.response.DiaryResponse;
 import university.likelion.wmt.domain.report.dto.response.ReportResponse;
 import university.likelion.wmt.domain.report.service.ReportService;
 
@@ -23,7 +22,7 @@ public class ReportController {
     // POST /reports/generate 엔드포인트로 요청을 받습니다.
     @PostMapping("/generate")
     public ResponseEntity<ReportResponse> generateReport(@AuthenticationPrincipal Long userId, @RequestBody ReportRequest reportRequest) {
-        ReportResponse reportResponse = reportService.generateReport(userId, reportRequest.getSelectedImageCfName(), reportRequest.getMarketId()); // marketId 전달
+        ReportResponse reportResponse = reportService.generateReport(userId, reportRequest.getSelectedImageUrl(), reportRequest.getMarketId()); // marketId 전달
         return new ResponseEntity<>(reportResponse, HttpStatus.CREATED);
     }
 
@@ -37,12 +36,5 @@ public class ReportController {
     public ResponseEntity<List<ReportResponse>> getMyReports(@AuthenticationPrincipal Long userId) {
         List<ReportResponse> myReports = reportService.getMyReports(userId);
         return ResponseEntity.ok(myReports);
-    }
-
-    //일기 생성
-    @GetMapping("/{reportId}/diary")
-    public ResponseEntity<DiaryResponse> getDiary(@PathVariable Long reportId) {
-        DiaryResponse diaryResponse = reportService.getDiary(reportId);
-        return ResponseEntity.ok(diaryResponse);
     }
 }
