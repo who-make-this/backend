@@ -29,8 +29,6 @@ import university.likelion.wmt.domain.mission.exception.MissionException;
 import university.likelion.wmt.domain.mission.respository.MissionRepository;
 import university.likelion.wmt.domain.report.dto.response.ReportResponse;
 import university.likelion.wmt.domain.report.entity.Report;
-import university.likelion.wmt.domain.report.exception.ReportErrorCode;
-import university.likelion.wmt.domain.report.exception.ReportException;
 import university.likelion.wmt.domain.report.repository.ReportRepository;
 import university.likelion.wmt.domain.user.entity.User;
 import university.likelion.wmt.domain.user.exception.UserErrorCode;
@@ -52,7 +50,7 @@ public class ReportService {
 
     @Transactional
     public ReportResponse generateReport(Long userId, String selectedImageUrl, Long marketId) {
-        log.info("리포트 생성을 시작합니다. userId: {}, selectedImageCfName: {}, marketId: {}", userId, selectedImageUrl,
+        log.info("리포트 생성을 시작합니다. userId: {}, selectedImageUrl: {}, marketId: {}", userId, selectedImageUrl,
             marketId);
 
         User user = userRepository.findById(userId)
