@@ -79,15 +79,12 @@ public class DiaryGeminiService {
         ReportResponse report,
         List<Mission> completedMissions,
         String weatherInfo,
-        String selectedImageCfName
+        String selectedImageUrl
     ) {
         try {
             String journalPrompt = DiaryPromptBuilder.buildDiaryPrompt(report, completedMissions, weatherInfo);
-
-            String imageUrl = imageWriter.createImageUrl(selectedImageCfName);
-
             HttpRequest imageRequest = HttpRequest.newBuilder()
-                .uri(new URI(imageUrl))
+                .uri(new URI(selectedImageUrl))
                 .GET()
                 .build();
             HttpResponse<byte[]> imageResponse = httpClient.send(imageRequest, HttpResponse.BodyHandlers.ofByteArray());

@@ -140,16 +140,18 @@ public class MissionService {
         if (remainingMissions < 5) {
             log.info("미션 재고가 부족합니다 ({}개 남음). 새 미션 10개를 생성합니다.", remainingMissions);
             List<MasterMission> masterMissions = getRandomMasterMissions(10);
-            masterMissions.forEach(mm -> {
+            for(MasterMission mm : masterMissions) {
                 Mission newMission = Mission.builder()
                     .user(user)
                     .category(mm.getCategory())
                     .content(mm.getContent())
+                    .missionTitle(mm.getMissionTitle())
+                    .missionNumbers(mm.getMissionNumbers())
                     .completed(false)
                     .createdAt(LocalDateTime.now())
                     .build();
                 missionRepository.save(newMission);
-            });
+            };
         }
 
         if (next.isEmpty()) {
@@ -192,6 +194,7 @@ public class MissionService {
                 .category(mm.getCategory())
                 .content(mm.getContent())
                 .missionTitle(mm.getMissionTitle())
+                .missionNumbers(mm.getMissionNumbers())
                 .completed(false)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -219,6 +222,7 @@ public class MissionService {
                 .category(mm.getCategory())
                 .content(mm.getContent())
                 .missionTitle(mm.getMissionTitle())
+                .missionNumbers(mm.getMissionNumbers())
                 .completed(false)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -293,6 +297,7 @@ public class MissionService {
             throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
         }
         String failureReason = mission.getFailureReason() != null ? mission.getFailureReason().getReason() : null;
+        String imageUrl = (mission.getImage() != null) ? mission.getImage().getImageUrl() : null;
         return new MissionResponse(
             mission.getId(),
             mission.getCategory(),
@@ -300,7 +305,9 @@ public class MissionService {
             mission.getMissionTitle(),
             mission.isCompleted(),
             mission.getCreatedAt(),
-            failureReason
+            failureReason,
+            mission.getMissionNumbers(),
+            imageUrl
         );
     }
 }

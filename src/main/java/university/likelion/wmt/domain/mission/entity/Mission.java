@@ -78,9 +78,16 @@ public class Mission {
     @JoinColumn(name = "failure_reason_id")
     private MissionFailureReason failureReason;
 
+    @Column(name = "missionNumbers", nullable = false)
+    private Integer missionNumbers;
+
     @Builder
-    public Mission(User user, Market market, String category, String missionTitle, String content, boolean completed,
-        LocalDateTime createdAt, Long reportId, Image image, MissionFailureReason failureReason) {
+    public Mission(User user, Market market, String category,
+                   String missionTitle, String content,
+                   boolean completed, LocalDateTime createdAt,
+                   Long reportId, Image image,
+                   MissionFailureReason failureReason,
+                   Integer missionNumbers) {
         this.user = user;
         this.market = market;
         this.category = category;
@@ -91,5 +98,6 @@ public class Mission {
         this.reportId = reportId;
         this.image = image;
         this.failureReason = failureReason;
+        this.missionNumbers = missionNumbers;
     }
 }
