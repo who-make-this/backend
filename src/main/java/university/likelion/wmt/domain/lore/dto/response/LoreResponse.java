@@ -6,7 +6,8 @@ public record LoreResponse(
 ) {
     public record LoreData(
         String title,
-        String content
+        String content,
+        String imageUrl
     ) {
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
+import university.likelion.wmt.domain.image.implement.ImageReader;
 import university.likelion.wmt.domain.lore.dto.response.LoreResponse;
 import university.likelion.wmt.domain.lore.entity.Lore;
 import university.likelion.wmt.domain.lore.repository.LoreRepository;
@@ -17,6 +18,7 @@ import university.likelion.wmt.domain.market.entity.Market;
 import university.likelion.wmt.domain.market.exception.MarketErrorCode;
 import university.likelion.wmt.domain.market.exception.MarketException;
 import university.likelion.wmt.domain.market.repository.MarketRepository;
+import university.likelion.wmt.domain.mission.service.MissionService;
 import university.likelion.wmt.domain.user.entity.User;
 import university.likelion.wmt.domain.user.exception.UserErrorCode;
 import university.likelion.wmt.domain.user.exception.UserException;
@@ -32,6 +34,9 @@ public class LoreService {
     private final MarketRepository marketRepository;
     private final LoreRepository loreRepository;
 
+    private final ImageReader imageReader;
+    private final MissionService missionService;
+
     public List<LoreResponse> getUnlocked(Long userId, Long marketId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
@@ -39,8 +44,7 @@ public class LoreService {
         Market market = marketRepository.findById(marketId)
             .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
 
-        // TODO: 미션 도메인 완성 시 완료 횟수 계산
-        long completedMissionCount = 3L;
+        long completedMissionCount = missionService.getCompletedMissionCount(userId, marketId);
 
         List<Lore> all = loreRepository.findAllByMarketOrderByRequiredMissionCountAscIdAsc(market);
 
@@ -51,7 +55,8 @@ public class LoreService {
                 continue;
             }
 
-            unlocked.put(required, new LoreResponse.LoreData(lore.getTitle(), lore.getContent()));
+            String imageUri = imageReader.get("LORE", lore.getId()).getFirst();
+            unlocked.put(required, new LoreResponse.LoreData(lore.getTitle(), lore.getContent(), imageUri));
         }
         for (long t : THRESHOLDS) {
             unlocked.putIfAbsent(t, null);
