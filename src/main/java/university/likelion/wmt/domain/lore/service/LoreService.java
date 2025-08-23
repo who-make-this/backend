@@ -55,7 +55,9 @@ public class LoreService {
                 continue;
             }
 
-            String imageUri = imageReader.get("LORE", lore.getId()).getFirst();
+            String imageUri = imageReader.get("LORE", lore.getId()).stream()
+                .findFirst()
+                .orElse(null);
             unlocked.put(required, new LoreResponse.LoreData(lore.getTitle(), lore.getContent(), imageUri));
         }
         for (long t : THRESHOLDS) {

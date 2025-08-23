@@ -34,8 +34,8 @@ public class UserService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
-        long clearMissionCount = missionRepository.findByUserAndCompletedTrue(user).size();
-        long reportCount = reportRepository.findByUser(user).size();
+        long clearMissionCount = missionRepository.countByUserAndCompletedTrue(user);
+        long reportCount = reportRepository.countByUser(user);
 
         Map<String, Long> categoryCounts = missionRepository.findByUserAndCompletedTrue(user).stream()
             .collect(Collectors.groupingBy(Mission::getCategory, Collectors.counting()));
