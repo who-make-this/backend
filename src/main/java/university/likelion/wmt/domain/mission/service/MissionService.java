@@ -126,8 +126,8 @@ public class MissionService {
         }
         missionRepository.save(mission);
 
-        //미션 완료 시 마일리지 UP (※임시 설정 * 100 포인트)
-        if (isSuccess) {
+        //미션 완료 시 마일리지 UP  100 포인트
+        if (isSuccess) { //isSuccess = true -> 100M 적립
             long earnedPoints = 100L;
             mileageWriter.earn(user.getId(), earnedPoints, LocalDateTime.now().plusYears(1),
                 MileageLogReferenceType.MISSION, mission.getId());
@@ -139,10 +139,16 @@ public class MissionService {
         long remainingMissions = missionRepository.countByUserAndCompletedFalse(user);
         if (remainingMissions < 5) {
             log.info("미션 재고가 부족합니다 ({}개 남음). 새 미션 10개를 생성합니다.", remainingMissions);
-            List<MasterMission> masterMissions = getRandomMasterMissions(10);
+            Market market = mission.getMarket();
+            List<Mission> completedMission = missionRepository.findByUserAndCompletedTrue(user);
+            List<Integer> completedMissionNumbers = completedMission.stream()
+                .map(Mission::getMissionNumbers)
+                .collect(Collectors.toList());
+            List<MasterMission> masterMissions = getRandomMasterMissions(10, completedMissionNumbers);
             for(MasterMission mm : masterMissions) {
                 Mission newMission = Mission.builder()
                     .user(user)
+                    .market(market)
                     .category(mm.getCategory())
                     .content(mm.getContent())
                     .missionTitle(mm.getMissionTitle())
@@ -182,7 +188,7 @@ public class MissionService {
         userRepository.save(user);
 
         missionRepository.deleteByUserAndCompletedFalse(user);
-        List<MasterMission> masterMissions = getRandomMasterMissions(10);
+        List<MasterMission> masterMissions = getRandomMasterMissions(10, List.of());
 
         Market market = marketRepository.findById(marketId)
             .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
@@ -209,12 +215,22 @@ public class MissionService {
     public MissionResponse refreshAndGetNewMission(Long userId, Long marketId) {
         log.info("미션 새로고침 요청. (사용자: {})", userId);
         User user = findUserById(userId);
+
+        // 미션이 TRUE 인 미션의 missionNumbers 목록 조회
+        List<Mission> completedMissions = missionRepository.findByUserAndCompletedTrue(user);
+        List<Integer> completedMissionNumbers = completedMissions.stream()
+            .map(Mission::getMissionNumbers)
+            .collect(Collectors.toList());
+
         missionRepository.deleteByUserAndCompletedFalse(user);
-        List<MasterMission> masterMissions = getRandomMasterMissions(10);
+
+        //master_mission에서 새로운 미션 가져오기(True 미션 제외)
+        List<MasterMission>masterMissions = getRandomMasterMissions(10, completedMissionNumbers);
 
         Market market = marketRepository.findById(marketId)
             .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
 
+        //새로운 미션 저장
         masterMissions.forEach(mm -> {
             Mission newMission = Mission.builder()
                 .user(user)
@@ -230,7 +246,10 @@ public class MissionService {
         });
         Mission firstMission = missionRepository.findFirstByUserAndCompletedFalseOrderByCreatedAtAsc(user)
             .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND));
+
         return toResponse(firstMission);
+
+
     }
 
     @Transactional(readOnly = true)
@@ -260,12 +279,16 @@ public class MissionService {
             .orElse("입문자");
     }
 
-    private List<MasterMission> getRandomMasterMissions(int count) {
+    private List<MasterMission> getRandomMasterMissions(int count, List<Integer> completedMissionNumbers) {
         long totalMissions = masterMissionRepository.count();
-        if (totalMissions < count) {
-            throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
+        if(completedMissionNumbers.isEmpty()) {
+            return masterMissionRepository.findRandomMissionsWithoutExclusion(count);
+            // 모든 미션을 완료한 경우 에는 미션이 부족할때 예외 발생
         }
-        return masterMissionRepository.findRandomMissions(count);
+        if(totalMissions < count + completedMissionNumbers.size()) {
+            log.warn("새로운 미션을 생성하기 위한 미션이 부족합니다. (총: {}개, 완료: {}개", totalMissions, completedMissionNumbers.size());
+        }
+        return masterMissionRepository.findRandomMissions(count, completedMissionNumbers);
     }
 
     @Transactional
