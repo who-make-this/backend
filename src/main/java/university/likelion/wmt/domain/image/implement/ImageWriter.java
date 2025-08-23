@@ -5,6 +5,7 @@ import java.util.Objects;
 import jakarta.persistence.EntityNotFoundException;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
@@ -26,17 +27,14 @@ public class ImageWriter {
     private final CloudflareImagesClient client;
     private final ImageProperties properties;
 
+    @Transactional
     public String upload(MultipartFile file) {
         String cfName = client.upload(file);
         if (Objects.isNull(cfName)) {
             throw new ImageException(ImageErrorCode.CLOUDFLARE_IMAGES_UPLOAD_FAILED);
         }
 
-        String imageUrl = String.format("%s/%s/%s/%s",
-            IMAGE_BASE_URI,
-            properties.getAccountHash(),
-            cfName,
-            IMAGE_VARIANTS_PUBLIC);
+        String imageUrl = getImageUri(cfName);
 
         Image image = Image.builder()
             .cfName(cfName)
@@ -50,11 +48,20 @@ public class ImageWriter {
         return imageUrl;
     }
 
+    @Transactional
     public void delete(Long imageId) {
         Image image = imageRepository.findById(imageId)
             .orElseThrow(() -> new EntityNotFoundException("image"));
 
         client.delete(image.getCfName());
         imageRepository.delete(image);
+    }
+
+    private String getImageUri(String cfName) {
+        return String.format("%s/%s/%s/%s",
+            IMAGE_BASE_URI,
+            properties.getAccountHash(),
+            cfName,
+            IMAGE_VARIANTS_PUBLIC);
     }
 }
