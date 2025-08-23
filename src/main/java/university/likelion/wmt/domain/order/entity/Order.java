@@ -42,7 +42,7 @@ public class Order {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "varchar(32)")
     private OrderStatus status = OrderStatus.PENDING;
 
     @Column(name = "total_price", nullable = false)

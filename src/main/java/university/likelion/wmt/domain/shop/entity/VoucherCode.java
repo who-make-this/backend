@@ -45,7 +45,7 @@ public class VoucherCode {
     private String pinCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 16)
+    @Column(name = "status", nullable = false, columnDefinition = "varchar(32)")
     private VoucherStatus status;
 
     @Column(name = "starts_at", nullable = false)
@@ -57,6 +57,10 @@ public class VoucherCode {
     @Builder
     public VoucherCode(Merchandise merchandise, String pinCode, VoucherStatus status, LocalDate startsAt,
         LocalDate endedAt) {
+        if (endedAt.isBefore(startsAt)) {
+            throw new IllegalArgumentException("만료일은 발급일보다 앞설 수 없습니다.");
+        }
+
         this.merchandise = merchandise;
         this.pinCode = pinCode;
         this.status = status;

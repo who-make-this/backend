@@ -24,9 +24,9 @@ public interface VoucherCodeRepository extends JpaRepository<VoucherCode, Long> 
     @Query("""
         select vc
           from OrderDetail od
-          join od.order o
-          join VoucherCode vc on vc.id = od.voucherCodeId
-         where o.id = :orderId
+          join od.order o, VoucherCode vc
+         where vc.id = od.voucherCodeId
+           and o.id = :orderId
            and o.user.id = :userId
            and vc.merchandise.type = :type
          order by vc.endedAt asc, vc.id asc

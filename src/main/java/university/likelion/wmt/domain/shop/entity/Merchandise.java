@@ -37,7 +37,7 @@ public class Merchandise {
     private Long price;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 32)
+    @Column(name = "type", nullable = false, columnDefinition = "varchar(32)")
     private MerchandiseType type;
 
     @Column(name = "is_visible", nullable = false)
@@ -51,6 +51,7 @@ public class Merchandise {
     public Merchandise(String name, Long price, MerchandiseType type, Boolean isVisible) {
         this.name = name;
         this.price = price;
+        this.type = type;
         this.isVisible = isVisible;
     }
 

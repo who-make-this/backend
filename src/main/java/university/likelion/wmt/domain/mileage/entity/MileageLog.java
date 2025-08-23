@@ -42,7 +42,7 @@ public class MileageLog {
 
     // 마일리지 기록 유형
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 12)
+    @Column(name = "type", nullable = false, columnDefinition = "varchar(32)")
     private MileageLogType type;
 
     // 마일리지의 원래 양
@@ -59,7 +59,7 @@ public class MileageLog {
 
     // 마일리지 획득, 사용, 환불, 운영 상 조정의 이유를 나타내기 위한 키
     @Enumerated(EnumType.STRING)
-    @Column(name = "ref_type", nullable = false, length = 32)
+    @Column(name = "ref_type", nullable = false, columnDefinition = "varchar(32)")
     private MileageLogReferenceType referenceType;
 
     // 마일리지 획득, 사용, 환불, 운영 상 조정의 이유를 나타내는 연관 키
