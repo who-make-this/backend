@@ -42,7 +42,7 @@ public class User {
     private String nickname;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
+    @Column(name = "role", nullable = false, columnDefinition = "varchar(32)")
     private Role role;
 
     @Column(name = "last_exploration_start_date")
