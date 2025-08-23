@@ -6,9 +6,16 @@ import university.likelion.wmt.domain.user.entity.User;
 
 public record UserInfoResponse(
     String nickname,
-    LocalDate createdAt
+    LocalDate createdAt,
+    String userType,
+    long completedMissionCount,
+    long explorationCount
 ) {
-    public static UserInfoResponse from(User user) {
-        return new UserInfoResponse(user.getNickname(), user.getCreatedAt().toLocalDate());
+    public static UserInfoResponse of(User user, String userType, long completedMissionCount, long explorationCount) {
+        return new UserInfoResponse(user.getNickname(),
+            user.getCreatedAt().toLocalDate(),
+            userType,
+            completedMissionCount,
+            explorationCount);
     }
 }
