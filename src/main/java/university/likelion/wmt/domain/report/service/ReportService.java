@@ -74,8 +74,11 @@ public class ReportService {
         LocalDateTime endDateTime = LocalDateTime.now();
 
         Integer totalScore = completedMissions.size();
+        log.info("리포트 생성을 위한 완료된 미션 수(totalScore): {}", totalScore);
 
         Long earnedMileageForReport = totalScore.longValue() * 100L;
+        //-> totalScore에다가 곱하기 100
+        log.info("리포트 생성을 위해 계산된 earnedMileageForReport: {}", earnedMileageForReport);
 
         Map<String, Long> mileageInfo = getMileageInfo(userId);
         Long remainingMonthlyMileage = mileageInfo.get("remainingMonthlyMileage");
@@ -178,7 +181,9 @@ public class ReportService {
         return reports.stream()
             .map(report -> {
                 List<Mission> reportMissions = missionRepository.findByReportId(report.getId());
+                log.info("리포트 ID {}에 연결된 미션 수: {}", report.getId(), reportMissions.size());
                 Long earnedMileageForReport = (long)reportMissions.size() * 100L;
+                log.info("리포트 ID {}에 대해 계산된 earnedMileageForReport: {}", report.getId(), earnedMileageForReport);
                 return toReportResponse(report, earnedMileageForReport, remainingMonthlyMileage, report.getMainImage());
             })
             .collect(Collectors.toList());
@@ -196,6 +201,7 @@ public class ReportService {
         }
 
         String userType = determineUserType(report.getUser());
+        log.info("리포트 ID {}에 전달된 earnedMileage: {}", report.getId(), earnedMileage);
 
         return new ReportResponse(
             report.getId(),
