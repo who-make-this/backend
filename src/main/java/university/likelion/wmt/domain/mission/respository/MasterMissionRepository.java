@@ -13,7 +13,7 @@ public interface MasterMissionRepository extends JpaRepository<MasterMission, Lo
     @Query(value =
         "SELECT * FROM master_mission " +
             "WHERE mission_numbers" +
-            " NOT IN :completedMissionNumbers " +
+            " NOT IN (:completedMissionNumbers) " +
             "ORDER BY RAND() LIMIT :count",
         nativeQuery = true)
     List<MasterMission> findRandomMissions(

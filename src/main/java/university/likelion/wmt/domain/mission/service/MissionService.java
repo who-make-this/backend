@@ -139,6 +139,7 @@ public class MissionService {
         long remainingMissions = missionRepository.countByUserAndCompletedFalse(user);
         if (remainingMissions < 5) {
             log.info("미션 재고가 부족합니다 ({}개 남음). 새 미션 10개를 생성합니다.", remainingMissions);
+            Market market = mission.getMarket();
             List<Mission> completedMission = missionRepository.findByUserAndCompletedTrue(user);
             List<Integer> completedMissionNumbers = completedMission.stream()
                 .map(Mission::getMissionNumbers)
@@ -147,6 +148,7 @@ public class MissionService {
             for(MasterMission mm : masterMissions) {
                 Mission newMission = Mission.builder()
                     .user(user)
+                    .market(market)
                     .category(mm.getCategory())
                     .content(mm.getContent())
                     .missionTitle(mm.getMissionTitle())
