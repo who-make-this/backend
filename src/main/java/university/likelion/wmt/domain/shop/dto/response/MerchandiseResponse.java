@@ -4,13 +4,13 @@ import university.likelion.wmt.domain.shop.entity.Merchandise;
 import university.likelion.wmt.domain.shop.entity.MerchandiseType;
 
 public record MerchandiseResponse(
-    Long id,
+    String id,
     String name,
     Long price,
     MerchandiseType type
 ) {
     public static MerchandiseResponse from(Merchandise merchandise) {
-        return new MerchandiseResponse(merchandise.getId(), merchandise.getName(), merchandise.getPrice(),
+        return new MerchandiseResponse(merchandise.getId().toString(), merchandise.getName(), merchandise.getPrice(),
             merchandise.getType());
     }
 }
