@@ -1,17 +1,25 @@
 package university.likelion.wmt.domain.mission.controller;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import university.likelion.wmt.domain.mission.dto.response.MissionResponse;
 import university.likelion.wmt.domain.mission.dto.response.UserProfileResponse;
 import university.likelion.wmt.domain.mission.service.MissionService;
-
-import java.util.List;
 
 @Slf4j // 로깅을 위해 Slf4j 어노테이션 추가
 @RestController
@@ -39,12 +47,13 @@ public class MissionController {
     @PostMapping("/end")
     public ResponseEntity<?> endMission(
         @AuthenticationPrincipal Long userId,
-        @RequestParam("marketId") Long marketId){
+        @RequestParam("marketId") Long marketId,
+        @RequestParam("startsAt") LocalDateTime startsAt){
         long completedMissionCount = missionService.getCompletedMissionCount(userId, marketId);
         if(completedMissionCount == 0){
             return ResponseEntity.badRequest().body("미션을 하나도 완료하지 않았습니다.");
         }
-        missionService.endUserExploration(userId);
+        missionService.endUserExploration(userId, startsAt);
         return ResponseEntity.ok("탐험이 성공적으로 종료되었습니다.");
     }
 

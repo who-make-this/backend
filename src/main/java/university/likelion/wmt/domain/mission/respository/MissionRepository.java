@@ -40,6 +40,9 @@ public interface MissionRepository extends JpaRepository<Mission, Long> {
     @Query("SELECT COUNT(m) FROM Mission m WHERE m.user = :user AND m.completed = true")
     long countByUserAndCompletedTrue(@Param("user") User user);
 
+    @Query("SELECT COUNT(m) FROM Mission m WHERE m.user = :user AND m.completed = true AND m.createdAt > :createdAt")
+    long countByUserAndCompletedTrueAndCreatedAtGreaterThanEqual(@Param("user") User user, LocalDateTime createdAt);
+
     @Query("SELECT COUNT(m) FROM Mission m WHERE m.user = :user AND m.market = :market AND m.completed = true")
     long countByUserAndCompletedTrue(@Param("user") User user, @Param("market") Market market);
 

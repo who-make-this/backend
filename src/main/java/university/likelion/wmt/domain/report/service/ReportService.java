@@ -60,6 +60,7 @@ public class ReportService {
             });
 
         List<Mission> completedMissions = missionRepository.findByUserAndCompletedTrueAndReportIdNull(user);
+        log.info("{}", completedMissions);
         if (completedMissions.isEmpty()) {
             log.warn("완료된 미션이 없습니다. userId: {}", userId);
             throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
