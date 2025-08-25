@@ -46,11 +46,11 @@ public class UserLoreUnlock {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "market_id")
+    @JoinColumn(name = "market_id", nullable = false)
     private Market market;
 
     @Column(name = "required_mission_count", nullable = false)
