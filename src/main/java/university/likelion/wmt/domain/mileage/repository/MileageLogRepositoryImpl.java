@@ -20,6 +20,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 
 import university.likelion.wmt.domain.mileage.entity.MileageLog;
+import university.likelion.wmt.domain.mileage.entity.MileageLogReferenceType;
 import university.likelion.wmt.domain.mileage.entity.MileageLogType;
 
 @Repository
@@ -95,6 +96,23 @@ public class MileageLogRepositoryImpl implements MileageLogRepositoryCustom {
             .from(mileageLog)
             .where(mileageLog.userId.eq(userId)
                 .and(mileageLog.type.eq(MileageLogType.EARN))
+                .and(mileageLog.createdAt.goe(start))
+                .and(mileageLog.createdAt.lt(end))
+            )
+            .fetchOne();
+
+        return sum == null ? 0 : sum;
+    }
+
+    @Override
+    public long findMileageSumByUserIdAndRefTypeAndRegDateBetween(Long userId, MileageLogReferenceType type, LocalDateTime start, LocalDateTime end) {
+        //=> 특정 기간 사이에 획득한 마일리지의 양을 계산합니다.
+        Long sum = queryFactory
+            .select(mileageLog.amount.sumLong())
+            .from(mileageLog)
+            .where(mileageLog.userId.eq(userId)
+                .and(mileageLog.type.eq(MileageLogType.EARN))
+                .and(mileageLog.referenceType.eq(type))
                 .and(mileageLog.createdAt.goe(start))
                 .and(mileageLog.createdAt.lt(end))
             )
