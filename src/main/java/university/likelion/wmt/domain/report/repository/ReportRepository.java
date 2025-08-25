@@ -8,7 +8,7 @@ import university.likelion.wmt.domain.report.entity.Report;
 import university.likelion.wmt.domain.user.entity.User;
 
 public interface ReportRepository extends JpaRepository<Report, Long> {
-    List<Report> findByUser(User user);
+    List<Report> findByUserOrderByExplorationDateDesc(User user);
 
     List<Report> findByMarketId(Long marketId);
 
