@@ -26,7 +26,7 @@ public class ReportController {
         return new ResponseEntity<>(reportResponse, HttpStatus.CREATED);
     }
 
-    @GetMapping("/reports/completed-images")
+    @GetMapping("/completed-images")
     public ResponseEntity<List<CompletedMissionImageResponse>> getUnreportedMissionImages(@AuthenticationPrincipal Long userId) {
         List<CompletedMissionImageResponse> images = reportService.getUnreportedMissionImages(userId);
         return ResponseEntity.ok(images);
