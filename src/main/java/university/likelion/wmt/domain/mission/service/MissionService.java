@@ -292,10 +292,10 @@ public class MissionService {
     }
 
     @Transactional
-    public void endUserExploration(Long userId, LocalDateTime startsAt) {
+    public void endUserExploration(Long userId) {
         log.info("사용자 탐험 종료 처리. 사용자: {}", userId);
         User user = findUserById(userId);
-        long completedMissionCount = missionRepository.countByUserAndCompletedTrueAndCreatedAtGreaterThanEqual(user, startsAt);
+        long completedMissionCount = missionRepository.countByUserAndCompletedTrueAndReportIdNull(user);
         log.info("현재 수행한 미션의 개수는 {}개입니다.", completedMissionCount);
 
         if(completedMissionCount == 0){

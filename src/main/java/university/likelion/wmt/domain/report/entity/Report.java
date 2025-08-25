@@ -1,13 +1,27 @@
 package university.likelion.wmt.domain.report.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-import university.likelion.wmt.domain.market.entity.Market;
-import university.likelion.wmt.domain.user.entity.User;
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+
 import org.hibernate.annotations.ColumnDefault;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import university.likelion.wmt.domain.market.entity.Market;
+import university.likelion.wmt.domain.user.entity.User;
 
 @Entity
 @Getter
@@ -53,16 +67,20 @@ public class Report {
     @Column(name = "journal_content", columnDefinition = "LONGTEXT")
     private String journalContent;
 
+    private Long earnedThisMonth;
+
+    private Long remainingMonthlyMileage;
+
     @Builder
     public Report(User user, Market market,
-                  LocalDateTime explorationDate,
-                  LocalDateTime startTime,
-                  LocalDateTime endTime,
-                  Integer totalScore,
-                  String mainImage,
-                  String reportTitle,
-                  String completedMissionsByCategoriesJson,
-                  String journalContent) {
+        LocalDateTime explorationDate,
+        LocalDateTime startTime,
+        LocalDateTime endTime,
+        Integer totalScore,
+        String mainImage,
+        String reportTitle,
+        String completedMissionsByCategoriesJson,
+        String journalContent) {
         this.user = user;
         this.market = market;
         this.explorationDate = explorationDate;

@@ -1,6 +1,5 @@
 package university.likelion.wmt.domain.mission.controller;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -47,13 +46,12 @@ public class MissionController {
     @PostMapping("/end")
     public ResponseEntity<?> endMission(
         @AuthenticationPrincipal Long userId,
-        @RequestParam("marketId") Long marketId,
-        @RequestParam("startsAt") LocalDateTime startsAt){
+        @RequestParam("marketId") Long marketId){
         long completedMissionCount = missionService.getCompletedMissionCount(userId, marketId);
         if(completedMissionCount == 0){
             return ResponseEntity.badRequest().body("미션을 하나도 완료하지 않았습니다.");
         }
-        missionService.endUserExploration(userId, startsAt);
+        missionService.endUserExploration(userId);
         return ResponseEntity.ok("탐험이 성공적으로 종료되었습니다.");
     }
 
