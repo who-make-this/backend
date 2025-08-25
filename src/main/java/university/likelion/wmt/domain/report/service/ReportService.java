@@ -174,7 +174,7 @@ public class ReportService {
 
         log.info("사용자 {}의 리포트 목록 조회 시작.", userId);
 
-        List<Report> reports = reportRepository.findByUser(user);
+        List<Report> reports = reportRepository.findByUserOrderByExplorationDateDesc(user);
 
         log.info("조회된 리포트 수: {}", reports.size());
         return reports.stream()
