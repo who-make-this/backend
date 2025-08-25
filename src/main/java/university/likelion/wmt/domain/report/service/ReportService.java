@@ -59,7 +59,7 @@ public class ReportService {
                 return new UserException(UserErrorCode.USER_NOT_FOUND);
             });
 
-        List<Mission> completedMissions = missionRepository.findByUserAndCompletedTrue(user);
+        List<Mission> completedMissions = missionRepository.findByUserAndCompletedTrueAndReportIdNull(user);
         if (completedMissions.isEmpty()) {
             log.warn("완료된 미션이 없습니다. userId: {}", userId);
             throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
@@ -133,28 +133,24 @@ public class ReportService {
 
         return toReportResponse(report, earnedMileageForReport, remainingMonthlyMileage, selectedImageUrl);
     }
-    @Transactional
-    public List<CompletedMissionImageResponse> getCompletedMissionImages(Long userId) {
+    @Transactional(readOnly = true)
+    public List<CompletedMissionImageResponse> getUnreportedMissionImages(Long userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
-        log.info("사용자 {}의 완료된 미션 이미지 목록 조회 시작.", userId);
+        // 아직 리포트에 속하지 않은 완료된 미션들을 조회
+        List<Mission> missions = missionRepository.findByUserAndCompletedTrueAndReportIdNull(user);
 
-        List<CompletedMissionImageResponse> images = missionRepository.findByUserAndCompletedTrue(user).stream()
+        // 이미지가 있는 미션만 필터링하여 DTO로 변환
+        return missions.stream()
             .filter(mission -> mission.getImage() != null)
-            .map(mission -> {
-                String imageUrl = mission.getImage().getImageUrl();
-                return new CompletedMissionImageResponse(
-                    mission.getId(),
-                    mission.getImage().getCfName(),
-                    imageUrl,
-                    mission.getCreatedAt()
-                );
-            })
+            .map(mission -> new CompletedMissionImageResponse(
+                mission.getId(),
+                mission.getImage().getCfName(),
+                mission.getImage().getImageUrl(),
+                mission.getCreatedAt()
+            ))
             .collect(Collectors.toList());
-
-        log.info("조회된 완료 미션 이미지 수: {}", images.size());
-        return images;
     }
     private String determineUserType(User user) {
         Map<String, Long> categoryCounts = missionRepository.findByUserAndCompletedTrue(user).stream()
