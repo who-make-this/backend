@@ -15,6 +15,7 @@ public enum MissionErrorCode implements ErrorCode {
     MISSION_NOT_FOUND(HttpStatus.BAD_REQUEST, 47730004, "진행 중인 미션을 찾을 수 없습니다.", null),
     IMAGE_NOT_FOUND(HttpStatus.BAD_REQUEST, 47730005, "이미지를 찾을 수 없습니다.", null), //이미지 예외
     ALREADY_STARTED_TODAY(HttpStatus.BAD_REQUEST, 47730006, "탐험은 하루에 한번만 가능합니다.", null),
+    MISSION_NOT_COMPLETED(HttpStatus.BAD_REQUEST, 47730007, "미션을 하나라도 수행해야합니다.", null),
 
     //500 Internal Server Error
     AI_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 47730007, "미션 생성에 실패했습니다.", null),
