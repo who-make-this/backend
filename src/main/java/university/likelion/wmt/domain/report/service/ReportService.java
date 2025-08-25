@@ -83,6 +83,7 @@ public class ReportService {
         log.info("리포트 생성을 위해 계산된 earnedMileageForReport: {}", earnedMileageForReport);
 
         Map<String, Long> mileageInfo = getMileageInfo(userId, startDateTime);
+        Long earnedThisMonth = mileageInfo.get("earnedThisMonth");
         Long remainingMonthlyMileage = mileageInfo.get("remainingMonthlyMileage");
 
         Map<String, Integer> missionsByCategory = completedMissions.stream()
@@ -113,6 +114,9 @@ public class ReportService {
             .totalScore(totalScore)
             .mainImage(selectedImageUrl)
             .reportTitle(reportTitle)
+            .earnedMileage(earnedMileageForReport)
+            .earnedThisMonth(earnedThisMonth)
+            .remainingMonthlyMileage(remainingMonthlyMileage)
             .build();
         reportRepository.save(report);
 
@@ -177,11 +181,9 @@ public class ReportService {
             .map(report -> {
                 List<Mission> reportMissions = missionRepository.findByReportId(report.getId());
                 log.info("리포트 ID {}에 연결된 미션 수: {}", report.getId(), reportMissions.size());
-                Map<String, Long> mileageInfo = getMileageInfo(userId, report.getStartTime());
-                long earnedMileageForReport = (long)reportMissions.size() * 100L;
-                long remainingMonthlyMileage = mileageInfo.get("remainingMonthlyMileage");
-                log.info("리포트 ID {}에 대해 계산된 earnedMileageForReport: {}", report.getId(), earnedMileageForReport);
-                return toReportResponse(report, earnedMileageForReport, remainingMonthlyMileage, report.getMainImage());
+                long earnedMileage = report.getEarnedMileage();
+                long remainingMonthlyMileage = report.getRemainingMonthlyMileage();
+                return toReportResponse(report, earnedMileage, remainingMonthlyMileage, report.getMainImage());
             })
             .collect(Collectors.toList());
     }

@@ -67,6 +67,8 @@ public class Report {
     @Column(name = "journal_content", columnDefinition = "LONGTEXT")
     private String journalContent;
 
+    private Long earnedMileage;
+
     private Long earnedThisMonth;
 
     private Long remainingMonthlyMileage;
@@ -80,7 +82,10 @@ public class Report {
         String mainImage,
         String reportTitle,
         String completedMissionsByCategoriesJson,
-        String journalContent) {
+        String journalContent,
+        Long earnedMileage,
+        Long earnedThisMonth,
+        Long remainingMonthlyMileage) {
         this.user = user;
         this.market = market;
         this.explorationDate = explorationDate;
@@ -91,5 +96,8 @@ public class Report {
         this.reportTitle = reportTitle;
         this.completedMissionsByCategoriesJson = completedMissionsByCategoriesJson;
         this.journalContent = journalContent;
+        this.earnedMileage = earnedMileage;
+        this.earnedThisMonth = earnedThisMonth;
+        this.remainingMonthlyMileage = remainingMonthlyMileage;
     }
 }
