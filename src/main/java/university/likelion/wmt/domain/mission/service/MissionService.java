@@ -295,6 +295,12 @@ public class MissionService {
     public void endUserExploration(Long userId) {
         log.info("사용자 탐험 종료 처리. 사용자: {}", userId);
         User user = findUserById(userId);
+        long completedMissionCount = missionRepository.countByUserAndCompletedTrue(user);
+
+        if(completedMissionCount == 0){
+            log.warn("미션 수행을 하나도 하지 않았습니다. userId = {}", userId);
+            throw new MissionException(MissionErrorCode.MISSION_NOT_COMPLETED);
+        }
         missionRepository.deleteByUserAndCompletedFalse(user);
     }
 
