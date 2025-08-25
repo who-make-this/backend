@@ -29,6 +29,8 @@ public interface MissionRepository extends JpaRepository<Mission, Long> {
     @EntityGraph(attributePaths = "image")
     List<Mission> findByUserAndCompletedTrue(User user);
 
+    List<Mission> findByUserAndCompletedTrueAndReportIdNull(User user);
+
     // 특정 유저의 완료되지 않은 미션만 삭제
     void deleteByUserAndCompletedFalse(User user);
 
