@@ -40,7 +40,17 @@ spring:
         hbm2ddl.auto: update
     # 영속성 컨텍스트가 데이터베이스 커넥션을 트랜잭션 종료 즉시 반환합니다.
     open-in-view: false
-  # ---- Spring Data JPA 구성
+  data:
+    web:
+      pageable:
+        one-indexed-parameters: true
+  # ---- Spring Data Redis 구성
+    redis:
+      host: ${wmt.redis.host}
+      port: ${wmt.redis.port}
+      repositories:
+        enabled: false
+  # ---- Multipart 업로드 구성
   servlet:
     multipart:
       max-file-size: 30MB

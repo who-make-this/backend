@@ -1,6 +1,7 @@
 package university.likelion.wmt.common.auth;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -35,7 +36,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        return request.getHeader(HttpHeaders.AUTHORIZATION) == null;
+        return request.getHeader(HttpHeaders.AUTHORIZATION) == null
+            || Arrays.stream(AuthConfig.ACCEPTED_URL_LIST).anyMatch(s -> s.equals(request.getRequestURI()));
     }
 
     @Override
