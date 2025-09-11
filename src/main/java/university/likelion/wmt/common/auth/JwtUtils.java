@@ -4,10 +4,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -27,29 +27,19 @@ public class JwtUtils {
 
     private final SecretKey secretKey;
     private final long accessTokenSeconds;
+    private final long refreshTokenSeconds;
 
-    public JwtUtils(@Value("${wmt.jwt.secret-key}") String secretKey,
-        @Value("${wmt.jwt.access-token-seconds}") long accessTokenSeconds) {
-        this.secretKey = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
-        this.accessTokenSeconds = accessTokenSeconds;
+    public JwtUtils(JwtProperties jwtProperties) {
+        this.secretKey = Keys.hmacShaKeyFor(jwtProperties.getSecretKey().getBytes(StandardCharsets.UTF_8));
+        this.accessTokenSeconds = jwtProperties.getAccessTokenSeconds();
+        this.refreshTokenSeconds = jwtProperties.getRefreshTokenSeconds();
     }
 
-    public String generateJwtToken(JwtClaims claims) {
-        Date now = new Date(System.currentTimeMillis());
-        Date expired = new Date(now.getTime() + accessTokenSeconds * MILLI_SECOND);
+    public Tokens generateTokens(JwtClaims claims) {
+        String accessToken = generateAccessToken(claims);
+        String refreshToken = generateRefreshToken();
 
-        return Jwts.builder()
-            .claims(generateClaims(claims))
-            .issuedAt(now)
-            .expiration(expired)
-            .signWith(secretKey, Jwts.SIG.HS256)
-            .compact();
-    }
-
-    private Map<String, Object> generateClaims(JwtClaims jwtClaims) {
-        return Map.of(
-            USER_ID, jwtClaims.userId(),
-            USER_ROLE, jwtClaims.userRole().getKey());
+        return new Tokens(accessToken, accessTokenSeconds, refreshToken, refreshTokenSeconds);
     }
 
     public JwtClaims parseToken(String accessToken) {
@@ -70,6 +60,28 @@ public class JwtUtils {
         } catch (Exception e) {
             return Optional.empty();
         }
+    }
+
+    private String generateAccessToken(JwtClaims claims) {
+        Date now = new Date(System.currentTimeMillis());
+        Date expired = new Date(now.getTime() + accessTokenSeconds * MILLI_SECOND);
+
+        return Jwts.builder()
+            .claims(generateClaims(claims))
+            .issuedAt(now)
+            .expiration(expired)
+            .signWith(secretKey, Jwts.SIG.HS256)
+            .compact();
+    }
+
+    private String generateRefreshToken() {
+        return UUID.randomUUID().toString();
+    }
+
+    private Map<String, Object> generateClaims(JwtClaims jwtClaims) {
+        return Map.of(
+            USER_ID, jwtClaims.userId(),
+            USER_ROLE, jwtClaims.userRole().getKey());
     }
 
     private JwtClaims convertJwtClaims(Claims claims) {

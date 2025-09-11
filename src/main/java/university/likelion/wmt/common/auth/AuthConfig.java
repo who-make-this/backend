@@ -32,6 +32,8 @@ public class AuthConfig {
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
+    public static final String[] ACCEPTED_URL_LIST = {"/", "/users/sign-up", "/users/sign-in", "/users/sign-out", "/users/refresh"};
+
     @Bean
     public SecurityFilterChain authSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -51,7 +53,7 @@ public class AuthConfig {
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
             .authorizeHttpRequests(req -> req
-                .requestMatchers("/", "/users/sign-up", "/users/sign-in").permitAll()
+                .requestMatchers(ACCEPTED_URL_LIST).permitAll()
                 .anyRequest().authenticated())
 
             .exceptionHandling(ex -> ex

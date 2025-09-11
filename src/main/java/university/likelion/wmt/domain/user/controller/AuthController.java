@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.RequiredArgsConstructor;
 
 import university.likelion.wmt.domain.user.dto.request.SignInRequest;
+import university.likelion.wmt.domain.user.dto.request.SignOutRequest;
 import university.likelion.wmt.domain.user.dto.request.SignUpRequest;
+import university.likelion.wmt.domain.user.dto.request.TokenRefreshRequest;
 import university.likelion.wmt.domain.user.dto.response.TokenResponse;
 import university.likelion.wmt.domain.user.service.AuthService;
 
@@ -31,6 +33,18 @@ public class AuthController {
     @PostMapping("/sign-in")
     public ResponseEntity<TokenResponse> signIn(@Valid @RequestBody SignInRequest signInRequest) {
         TokenResponse tokenResponse = authService.signIn(signInRequest);
+        return ResponseEntity.ok(tokenResponse);
+    }
+
+    @PostMapping("/sign-out")
+    public ResponseEntity<TokenResponse> signOut(@Valid @RequestBody SignOutRequest signOutRequest) {
+        authService.signOut(signOutRequest);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenResponse> refresh(@Valid @RequestBody TokenRefreshRequest tokenRefreshRequest) {
+        TokenResponse tokenResponse = authService.refresh(tokenRefreshRequest);
         return ResponseEntity.ok(tokenResponse);
     }
 }
