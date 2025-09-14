@@ -98,7 +98,7 @@ jobs:
             --name ${{ vars.CONTAINER_NAME }} \
             --network ${{ vars.NETWORK_NAME }} \
             -p ${{ secrets.DEV_WEB_PORT }}:8080 \
-            --add-host=host.docker.internal:host-gateway
+            --add-host=host.docker.internal:host-gateway \
             --mount type=bind,src="${{ secrets.RDB_CERT_SRC }}",dst="${{ secrets.RDB_CERT_DST }}",ro \
             -e USE_PROFILE=dev \
             -e TZ=Asia/Seoul \
