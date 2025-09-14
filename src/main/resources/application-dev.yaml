@@ -48,6 +48,7 @@ spring:
     redis:
       host: ${wmt.redis.host}
       port: ${wmt.redis.port}
+      password: ${wmt.redis.password}
       repositories:
         enabled: false
   # ---- Multipart 업로드 구성
