@@ -46,10 +46,7 @@ spring:
         one-indexed-parameters: true
     # ---- Spring Data Redis 구성
     redis:
-      host: ${wmt.redis.host}
-      port: ${wmt.redis.port}
-      username: ${wmt.redis.username}
-      password: ${wmt.redis.password}
+      url: ${wmt.redis.url}
       repositories:
         enabled: false
   # ---- Multipart 업로드 구성
