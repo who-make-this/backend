@@ -18,8 +18,8 @@ public enum MissionErrorCode implements ErrorCode {
     MISSION_NOT_COMPLETED(HttpStatus.BAD_REQUEST, 47730007, "미션을 하나라도 수행해야합니다.", null),
 
     //500 Internal Server Error
-    AI_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 47730007, "미션 생성에 실패했습니다.", null),
-    DUPLICATE_MISSION_ID(HttpStatus.INTERNAL_SERVER_ERROR, 47730008, "중복된 미션 ID가 발생했습니다.", null);
+    AI_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 47730008, "미션 생성에 실패했습니다.", null),
+    DUPLICATE_MISSION_ID(HttpStatus.INTERNAL_SERVER_ERROR, 47730009, "중복된 미션 ID가 발생했습니다.", null);
 
     private final HttpStatus httpStatus;
     private final int code;
