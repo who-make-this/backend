@@ -48,6 +48,7 @@ spring:
     redis:
       host: ${wmt.redis.host}
       port: ${wmt.redis.port}
+      username: ${wmt.redis.username}
       password: ${wmt.redis.password}
       repositories:
         enabled: false
@@ -63,4 +64,3 @@ logging:
     org.springframework.web: debug
     # ---- Hibernate가 실행할 질의문을 살펴봅니다.
     org.hibernate.SQL: debug
-    org.springframework.data.redis: debug
