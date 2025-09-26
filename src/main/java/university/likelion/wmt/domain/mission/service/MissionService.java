@@ -49,6 +49,7 @@ import university.likelion.wmt.domain.user.repository.UserRepository;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MissionService {
     private final MissionRepository missionRepository;
     private final MasterMissionRepository masterMissionRepository;
@@ -155,7 +156,6 @@ public class MissionService {
             .orElse("입문자");
     }
 
-    @Transactional(readOnly = true)
     public List<MissionResponse> getCompletedMissionsByCategory(Long userId, String category) {
         User user = findUserOrThrow(userId);
         return missionRepository.findByUserAndCategoryAndCompletedTrueAndIsExplorationEndedFalse(user, category)
@@ -239,7 +239,8 @@ public class MissionService {
         return excluded;
     }
 
-    private Mission createNewMission(User user, Market market, Set<Integer> excludedNumbers) {
+    @Transactional
+    protected Mission createNewMission(User user, Market market, Set<Integer> excludedNumbers) {
         List<MasterMission> masters = getRandomMasterMissions(1, List.copyOf(excludedNumbers));
         if (masters.isEmpty()) {
             log.warn("새로운 미션을 찾을 수 없습니다. userId={}, 제외 대상: {}", user.getId(), excludedNumbers);
@@ -248,7 +249,7 @@ public class MissionService {
         return missionRepository.save(buildMissionEntity(masters.get(0), user, market, LocalDateTime.now()));
     }
 
-    private Mission buildMissionEntity(MasterMission mm, User user, Market market, LocalDateTime createdAt) {
+    protected Mission buildMissionEntity(MasterMission mm, User user, Market market, LocalDateTime createdAt) {
         return Mission.builder()
             .user(user)
             .market(market)
@@ -262,12 +263,13 @@ public class MissionService {
             .build();
     }
 
-    private String parseImageIdFromUrl(String imageUrl) {
+    protected String parseImageIdFromUrl(String imageUrl) {
         String urlWithoutVariant = imageUrl.substring(0, imageUrl.lastIndexOf('/'));
         return urlWithoutVariant.substring(urlWithoutVariant.lastIndexOf('/') + 1);
     }
 
-    private Image uploadAndFindImage(MultipartFile file) {
+    @Transactional
+    protected Image uploadAndFindImage(MultipartFile file) {
         imageValidator.validateAllowedMime(file);
         String imageUrl = imageWriter.upload(file);
         log.info("업로드 된 이미지 URL: {}", imageUrl);
@@ -280,7 +282,7 @@ public class MissionService {
         });
     }
 
-    private MissionEvaluationResult evaluateMission(Mission mission, String imageUri) {
+    protected MissionEvaluationResult evaluateMission(Mission mission, String imageUri) {
         String result = missionGeminiService.authenticateMission(
             mission.getContent(), mission.getCategory(), imageUri);
         if ("ERROR".equals(result)) throw new MissionException(MissionErrorCode.AI_GENERATION_FAILED);
@@ -290,7 +292,7 @@ public class MissionService {
         return new MissionEvaluationResult(success, reason);
     }
 
-    private MissionFailureReason extractFailureReason(String geminiResponse) {
+    protected MissionFailureReason extractFailureReason(String geminiResponse) {
         int idx = geminiResponse.indexOf(':');
         if (idx < 0 || idx + 1 >= geminiResponse.length()) return null;
 
@@ -298,14 +300,15 @@ public class MissionService {
         return missionFailureReasonRepository.findByCode(code).orElse(null);
     }
 
-    private void applyMissionResult(Mission mission, Image image, MissionEvaluationResult eval) {
+    @Transactional
+    protected void applyMissionResult(Mission mission, Image image, MissionEvaluationResult eval) {
         mission.setCompleted(eval.success());
         mission.setImage(image);
         mission.setFailureReason(eval.failureReason());
-        missionRepository.save(mission);
     }
 
-    private void rewardIfSuccess(User user, Mission mission, boolean success) {
+    @Transactional
+    protected void rewardIfSuccess(User user, Mission mission, boolean success) {
         if (!success) return;
         mileageWriter.earn(
             user.getId(),
@@ -317,11 +320,12 @@ public class MissionService {
         log.info("마일리지 적립 완료. 사용자 ID: {}", user.getId());
     }
 
-    private Optional<Mission> findNextActiveMission(User user) {
+    protected Optional<Mission> findNextActiveMission(User user) {
         return missionRepository.findFirstByUserAndCompletedFalseAndExplorationEndedFalseOrderByCreatedAtAsc(user);
     }
 
-    private void replenishMissionsIfNeeded(User user, Market market) {
+    @Transactional
+    protected void replenishMissionsIfNeeded(User user, Market market) {
         long remaining = missionRepository.countByUserAndCompletedFalse(user);
         if (remaining >= MIN_REMAINING_MISSIONS) return;
 
@@ -341,7 +345,7 @@ public class MissionService {
         missionRepository.saveAll(newMissions);
     }
 
-    private MissionResponse toResponse(Mission mission) {
+    protected MissionResponse toResponse(Mission mission) {
         if (mission == null) throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
 
         String failureReason = mission.getFailureReason() != null ? mission.getFailureReason().getReason() : null;
@@ -360,7 +364,7 @@ public class MissionService {
         );
     }
 
-    private List<MasterMission> getRandomMasterMissions(int count, List<Integer> excludedMissionNumbers) {
+    protected List<MasterMission> getRandomMasterMissions(int count, List<Integer> excludedMissionNumbers) {
         long total = masterMissionRepository.count();
 
         if (excludedMissionNumbers.isEmpty()) {
@@ -372,5 +376,5 @@ public class MissionService {
         return masterMissionRepository.findRandomMissions(count, excludedMissionNumbers);
     }
 
-    private record MissionEvaluationResult(boolean success, MissionFailureReason failureReason) {}
+    protected record MissionEvaluationResult(boolean success, MissionFailureReason failureReason) {}
 }
