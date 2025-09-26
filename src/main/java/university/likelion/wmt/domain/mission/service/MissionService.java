@@ -158,7 +158,7 @@ public class MissionService {
     @Transactional(readOnly = true)
     public List<MissionResponse> getCompletedMissionsByCategory(Long userId, String category) {
         User user = findUserOrThrow(userId);
-        return missionRepository.findByUserAndCategoryAndCompletedTrue(user, category)
+        return missionRepository.findByUserAndCategoryAndCompletedTrueAndIsExplorationEndedFalse(user, category)
             .stream().map(this::toResponse).toList();
     }
 
@@ -213,8 +213,6 @@ public class MissionService {
         List<Mission> actives = missionRepository.findByUserAndCompletedFalseAndExplorationEndedFalse(user);
         if (actives.isEmpty()) return actives;
 
-        actives.forEach(m -> m.setExplorationEnded(true));
-        missionRepository.saveAll(actives);
         log.debug("{}개의 진행 중인 미션을 탐험에서 제외했습니다. userId={}", actives.size(), user.getId());
         return actives;
     }
