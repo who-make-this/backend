@@ -3,9 +3,11 @@ package university.likelion.wmt.domain.mission.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
@@ -60,214 +62,88 @@ public class MissionService {
     private final MissionFailureReasonRepository missionFailureReasonRepository;
 
     @Value("${wmt.mission.hackathon.mode.start-date}")
-    private String hackathonStartDate;
+    private String hackathonStartDateStr;
 
     @Value("${wmt.mission.hackathon.mode.end-date}")
-    private String hackathonEndDate;
+    private String hackathonEndDateStr;
+
+    private static final int MIN_REMAINING_MISSIONS = 5;
+    private static final int REPLENISH_MISSION_COUNT = 10;
+    private static final long MISSION_REWARD_POINTS = 100L;
+
+    // 캐시된 해커톤 기간(매번 파싱 비용 제거)
+    private LocalDate hackathonStart;
+    private LocalDate hackathonEnd;
 
     @PostConstruct
     public void init() {
-        List<MissionFailureReason> reasons = missionFailureReasonRepository.findAll();
-        MissionPromptBuilder.setFailureReasons(reasons);
-    }
-
-    private User findUserById(Long userId) {
-        return userRepository.findById(userId)
-            .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
-    }
-
-    // 해커톤 기간인지 확인하는 헬퍼 메서드
-    private boolean isDuringHackathon() {
-        LocalDate today = LocalDate.now();
-        LocalDate start = LocalDate.parse(hackathonStartDate);
-        LocalDate end = LocalDate.parse(hackathonEndDate);
-        // 종료일을 포함하도록 isAfter 대신 !isAfter를 사용
-        return !today.isBefore(start) && !today.isAfter(end);
+        MissionPromptBuilder.setFailureReasons(missionFailureReasonRepository.findAll());
+        hackathonStart = LocalDate.parse(hackathonStartDateStr);
+        hackathonEnd   = LocalDate.parse(hackathonEndDateStr);
     }
 
     @Transactional
     public MissionResponse authenticateMission(Long missionId, Long userId, MultipartFile imageFile) {
-        User user = findUserById(userId);
-        Mission mission = missionRepository.findById(missionId)
-            .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND));
-        if (!mission.getUser().getId().equals(user.getId())) {
-            throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
-        }
-        imageValidator.validateAllowedMime(imageFile);
-        String imageUrl = imageWriter.upload(imageFile);
-        log.info("업로드 된 이미지 URL: {}", imageUrl);
-        String cfName = parseImageIdFromUrl(imageUrl);
-        log.info("추출된 cfName: {}", cfName);
-        Optional<Image> imageOpt = imageRepository.findByCfName(cfName);
-        if (imageOpt.isEmpty()) {
-            log.error("Image not found for cfName: {}", cfName);
-            throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
-        }
-        Image image = imageOpt.get();
+        User user = findUserOrThrow(userId);
+        Mission mission = findMissionForUserOrThrow(missionId, user);
 
-        String geminiResponse = missionGeminiService.authenticateMission(
-            mission.getContent(),
-            mission.getCategory(),
-            imageFile
-        );
-        if ("ERROR".equals(geminiResponse)) {
-            throw new MissionException(MissionErrorCode.AI_GENERATION_FAILED);
-        }
-        boolean isSuccess = geminiResponse.startsWith("YES");
+        Image image = uploadAndFindImage(imageFile);
+        MissionEvaluationResult eval = evaluateMission(mission, image.getImageUrl());
 
-        mission.setCompleted(isSuccess);
-        mission.setImage(image);
+        applyMissionResult(mission, image, eval);
+        rewardIfSuccess(user, mission, eval.success());
 
-        if (!isSuccess) {
-            String failureCode = geminiResponse.substring(geminiResponse.indexOf(":") + 1);
-            MissionFailureReason failureReason = missionFailureReasonRepository.findByCode(failureCode)
-                .orElse(null);
-            mission.setFailureReason(failureReason);
-        }
-        missionRepository.save(mission);
+        // 다음 미션 반환 우선(사용자 경험 일관성).
+        Optional<Mission> next = findNextActiveMission(user);
+        if (next.isPresent()) return toResponse(next.get());
 
-        //미션 완료 시 마일리지 UP  100 포인트
-        if (isSuccess) { //isSuccess = true -> 100M 적립
-            long earnedPoints = 100L;
-            mileageWriter.earn(user.getId(), earnedPoints, LocalDateTime.now().plusYears(1),
-                MileageLogReferenceType.MISSION, mission.getId());
-            log.info("마일리지 적립 완료. 사용자 ID: {}", user.getId());
-        }
-
-        Optional<Mission> next = missionRepository.findFirstByUserAndCompletedFalseOrderByCreatedAtAsc(user);
-
-        long remainingMissions = missionRepository.countByUserAndCompletedFalse(user);
-        if (remainingMissions < 5) {
-            log.info("미션 재고가 부족합니다 ({}개 남음). 새 미션 10개를 생성합니다.", remainingMissions);
-            Market market = mission.getMarket();
-            List<Mission> completedMission = missionRepository.findByUserAndCompletedTrue(user);
-            List<Integer> completedMissionNumbers = completedMission.stream()
-                .map(Mission::getMissionNumbers)
-                .collect(Collectors.toList());
-            List<MasterMission> masterMissions = getRandomMasterMissions(10, completedMissionNumbers);
-            for(MasterMission mm : masterMissions) {
-                Mission newMission = Mission.builder()
-                    .user(user)
-                    .market(market)
-                    .category(mm.getCategory())
-                    .content(mm.getContent())
-                    .missionTitle(mm.getMissionTitle())
-                    .missionNumbers(mm.getMissionNumbers())
-                    .completed(false)
-                    .createdAt(LocalDateTime.now())
-                    .build();
-                missionRepository.save(newMission);
-            };
-        }
-
-        if (next.isEmpty()) {
-            Optional<Mission> newNext = missionRepository.findFirstByUserAndCompletedFalseOrderByCreatedAtAsc(user);
-            return toResponse(newNext.orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND)));
-        }
-        return toResponse(mission);
-    }
-
-    private String parseImageIdFromUrl(String imageUrl) {
-        String urlWithoutVariant = imageUrl.substring(0, imageUrl.lastIndexOf('/'));
-        String cfName = urlWithoutVariant.substring(urlWithoutVariant.lastIndexOf('/') + 1);
-        return cfName;
+        // 없으면 재고 보충 후 다시 탐색
+        replenishMissionsIfNeeded(user, mission.getMarket());
+        return findNextActiveMission(user).map(this::toResponse).orElse(toResponse(mission));
     }
 
     @Transactional
     public MissionResponse startUserExploration(Long userId, Long marketId) {
-        log.info("미션 일괄 생성 시작. (사용자: {}, 시장: {}, 개수: {})", userId, marketId, 10);
-        User user = findUserById(userId);
+        log.info("사용자 탐험 시작. 사용자: {}, 시장: {}", userId, marketId);
+        User user = findUserOrThrow(userId);
 
         if (!isDuringHackathon()) {
             LocalDate today = LocalDate.now();
-            if (user.getLastExplorationStartDate() != null && user.getLastExplorationStartDate().isEqual(today)) {
+            if (today.equals(user.getLastExplorationStartDate())) {
                 throw new MissionException(MissionErrorCode.ALREADY_STARTED_TODAY);
             }
         }
+
+        archiveActiveMissions(user); // 진행 중 미션 정리
         user.startExploration();
         userRepository.save(user);
 
-        missionRepository.deleteByUserAndCompletedFalse(user);
-        List<MasterMission> masterMissions = getRandomMasterMissions(10, List.of());
-
-        Market market = marketRepository.findById(marketId)
-            .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
-
-        masterMissions.forEach(mm -> {
-            Mission newMission = Mission.builder()
-                .user(user)
-                .market(market)
-                .category(mm.getCategory())
-                .content(mm.getContent())
-                .missionTitle(mm.getMissionTitle())
-                .missionNumbers(mm.getMissionNumbers())
-                .completed(false)
-                .createdAt(LocalDateTime.now())
-                .build();
-            missionRepository.save(newMission);
-        });
-        Mission firstMission = missionRepository.findFirstByUserAndCompletedFalseOrderByCreatedAtAsc(user)
-            .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND));
-        return toResponse(firstMission);
+        Market market = findMarketOrThrow(marketId);
+        Mission mission = createNewMission(user, market, collectExcludedMissionNumbers(user));
+        return toResponse(mission);
     }
 
     @Transactional
     public MissionResponse refreshAndGetNewMission(Long userId, Long marketId) {
-        log.info("미션 새로고침 요청. (사용자: {})", userId);
-        User user = findUserById(userId);
+        log.info("미션 새로고침 요청. 사용자: {}", userId);
+        User user = findUserOrThrow(userId);
 
-        // 미션이 TRUE 인 미션의 missionNumbers 목록 조회
-        List<Mission> completedMissions = missionRepository.findByUserAndCompletedTrue(user);
-        List<Integer> completedMissionNumbers = completedMissions.stream()
-            .map(Mission::getMissionNumbers)
-            .collect(Collectors.toList());
+        List<Mission> archived = archiveActiveMissions(user);
+        if (archived.isEmpty()) throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
 
-        missionRepository.deleteByUserAndCompletedFalse(user);
-
-        //master_mission에서 새로운 미션 가져오기(True 미션 제외)
-        List<MasterMission>masterMissions = getRandomMasterMissions(10, completedMissionNumbers);
-
-        Market market = marketRepository.findById(marketId)
-            .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
-
-        //새로운 미션 저장
-        masterMissions.forEach(mm -> {
-            Mission newMission = Mission.builder()
-                .user(user)
-                .market(market)
-                .category(mm.getCategory())
-                .content(mm.getContent())
-                .missionTitle(mm.getMissionTitle())
-                .missionNumbers(mm.getMissionNumbers())
-                .completed(false)
-                .createdAt(LocalDateTime.now())
-                .build();
-            missionRepository.save(newMission);
-        });
-        Mission firstMission = missionRepository.findFirstByUserAndCompletedFalseOrderByCreatedAtAsc(user)
-            .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND));
-
-        return toResponse(firstMission);
-
-
+        Market market = findMarketOrThrow(marketId);
+        Mission mission = createNewMission(user, market, collectExcludedMissionNumbers(user));
+        return toResponse(mission);
     }
 
     @Transactional(readOnly = true)
     public UserProfileResponse getUserProfile(Long userId) {
-        User user = findUserById(userId);
+        User user = findUserOrThrow(userId);
         String userType = determineUserType(user);
-        Optional<Mission> currentMission = missionRepository.findFirstByUserAndCompletedFalseOrderByCreatedAtAsc(user);
-        MissionResponse missionResponse = currentMission.map(this::toResponse).orElse(null);
-        return new UserProfileResponse(userId, userType, missionResponse);
-    }
-
-    @Transactional(readOnly = true)
-    public List<MissionResponse> getCompletedMissionsByCategory(Long userId, String category) {
-        User user = findUserById(userId);
-        List<Mission> completedMissions = missionRepository.findByUserAndCategoryAndCompletedTrue(user, category);
-        return completedMissions.stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
+        MissionResponse current = missionRepository
+            .findFirstByUserAndCompletedFalseAndExplorationEndedFalseOrderByCreatedAtAsc(user)
+            .map(this::toResponse).orElse(null);
+        return new UserProfileResponse(userId, userType, current);
     }
 
     private String determineUserType(User user) {
@@ -279,55 +155,196 @@ public class MissionService {
             .orElse("입문자");
     }
 
-    private List<MasterMission> getRandomMasterMissions(int count, List<Integer> completedMissionNumbers) {
-        long totalMissions = masterMissionRepository.count();
-        if(completedMissionNumbers.isEmpty()) {
-            return masterMissionRepository.findRandomMissionsWithoutExclusion(count);
-            // 모든 미션을 완료한 경우 에는 미션이 부족할때 예외 발생
-        }
-        if(totalMissions < count + completedMissionNumbers.size()) {
-            log.warn("새로운 미션을 생성하기 위한 미션이 부족합니다. (총: {}개, 완료: {}개", totalMissions, completedMissionNumbers.size());
-        }
-        return masterMissionRepository.findRandomMissions(count, completedMissionNumbers);
+    @Transactional(readOnly = true)
+    public List<MissionResponse> getCompletedMissionsByCategory(Long userId, String category) {
+        User user = findUserOrThrow(userId);
+        return missionRepository.findByUserAndCategoryAndCompletedTrue(user, category)
+            .stream().map(this::toResponse).toList();
     }
 
     @Transactional
     public void endUserExploration(Long userId) {
         log.info("사용자 탐험 종료 처리. 사용자: {}", userId);
-        User user = findUserById(userId);
-        long completedMissionCount = missionRepository.countByUserAndCompletedTrueAndReportIdNull(user);
-        log.info("현재 수행한 미션의 개수는 {}개입니다.", completedMissionCount);
+        User user = findUserOrThrow(userId);
 
-        if(completedMissionCount == 0){
-            log.warn("미션 수행을 하나도 하지 않았습니다. userId = {}", userId);
-            throw new MissionException(MissionErrorCode.MISSION_NOT_COMPLETED);
-        }
-        missionRepository.deleteByUserAndCompletedFalse(user);
+        long done = missionRepository.countByUserAndCompletedTrueAndReportIdNull(user);
+        log.info("현재 수행한 미션의 개수는 {}개입니다.", done);
+        if (done == 0) throw new MissionException(MissionErrorCode.MISSION_NOT_COMPLETED);
+
+        missionRepository.deleteByUserAndCompletedFalse(user); // 미완료 미션 정리
     }
 
     @Transactional(readOnly = true)
     public long getCompletedMissionCount(Long userId, Long marketId) {
-        User user = findUserById(userId);
-        Market market = marketRepository.findById(marketId)
-            .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
-
+        User user = findUserOrThrow(userId);
+        Market market = findMarketOrThrow(marketId);
         return missionRepository.countByUserAndCompletedTrue(user, market);
     }
 
-    @Transactional(readOnly = true)
     public List<MissionResponse> getMissionsByMarket(Long marketId) {
-        List<Mission> missions = missionRepository.findByMarketId(marketId);
-        return missions.stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
+        return missionRepository.findByMarketId(marketId).stream().map(this::toResponse).toList();
+    }
+
+    private User findUserOrThrow(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+    }
+
+    private Market findMarketOrThrow(Long marketId) {
+        return marketRepository.findById(marketId)
+            .orElseThrow(() -> new MarketException(MarketErrorCode.MARKET_NOT_FOUND));
+    }
+
+    private boolean isDuringHackathon() {
+        LocalDate today = LocalDate.now();
+        return !today.isBefore(hackathonStart) && !today.isAfter(hackathonEnd);
+    }
+
+    private Mission findMissionForUserOrThrow(Long missionId, User user) {
+        Mission mission = missionRepository.findById(missionId)
+            .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND));
+        if (!mission.getUser().getId().equals(user.getId())) {
+            throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
+        }
+        return mission;
+    }
+
+    private List<Mission> archiveActiveMissions(User user) {
+        List<Mission> actives = missionRepository.findByUserAndCompletedFalseAndExplorationEndedFalse(user);
+        if (actives.isEmpty()) return actives;
+
+        actives.forEach(m -> m.setExplorationEnded(true));
+        missionRepository.saveAll(actives);
+        log.debug("{}개의 진행 중인 미션을 탐험에서 제외했습니다. userId={}", actives.size(), user.getId());
+        return actives;
+    }
+
+    private Set<Integer> collectExcludedMissionNumbers(User user) {
+        Set<Integer> excluded = new HashSet<>();
+        LocalDate lastStart = user.getLastExplorationStartDate();
+        if (lastStart == null) return excluded;
+
+        LocalDateTime since = lastStart.atStartOfDay();
+
+        // 완료 미션 번호
+        missionRepository.findByUserAndCompletedTrueAndCreatedAtGreaterThanEqual(user, since)
+            .stream().map(Mission::getMissionNumbers).forEach(excluded::add);
+
+        // 최근 진행(미완료) 상위 10개 미션 번호
+        missionRepository.findTop10ByUserAndCompletedFalseAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(user, since)
+            .stream().map(Mission::getMissionNumbers).forEach(excluded::add);
+
+        return excluded;
+    }
+
+    private Mission createNewMission(User user, Market market, Set<Integer> excludedNumbers) {
+        List<MasterMission> masters = getRandomMasterMissions(1, List.copyOf(excludedNumbers));
+        if (masters.isEmpty()) {
+            log.warn("새로운 미션을 찾을 수 없습니다. userId={}, 제외 대상: {}", user.getId(), excludedNumbers);
+            throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
+        }
+        return missionRepository.save(buildMissionEntity(masters.get(0), user, market, LocalDateTime.now()));
+    }
+
+    private Mission buildMissionEntity(MasterMission mm, User user, Market market, LocalDateTime createdAt) {
+        return Mission.builder()
+            .user(user)
+            .market(market)
+            .category(mm.getCategory())
+            .content(mm.getContent())
+            .missionTitle(mm.getMissionTitle())
+            .missionNumbers(mm.getMissionNumbers())
+            .completed(false)
+            .explorationEnded(false)
+            .createdAt(createdAt)
+            .build();
+    }
+
+    private String parseImageIdFromUrl(String imageUrl) {
+        String urlWithoutVariant = imageUrl.substring(0, imageUrl.lastIndexOf('/'));
+        return urlWithoutVariant.substring(urlWithoutVariant.lastIndexOf('/') + 1);
+    }
+
+    private Image uploadAndFindImage(MultipartFile file) {
+        imageValidator.validateAllowedMime(file);
+        String imageUrl = imageWriter.upload(file);
+        log.info("업로드 된 이미지 URL: {}", imageUrl);
+        String cfName = parseImageIdFromUrl(imageUrl);
+        log.info("추출된 cfName: {}", cfName);
+
+        return imageRepository.findByCfName(cfName).orElseThrow(() -> {
+            log.error("Image not found for cfName: {}", cfName);
+            return new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
+        });
+    }
+
+    private MissionEvaluationResult evaluateMission(Mission mission, String imageUri) {
+        String result = missionGeminiService.authenticateMission(
+            mission.getContent(), mission.getCategory(), imageUri);
+        if ("ERROR".equals(result)) throw new MissionException(MissionErrorCode.AI_GENERATION_FAILED);
+
+        boolean success = result.startsWith("YES");
+        MissionFailureReason reason = success ? null : extractFailureReason(result);
+        return new MissionEvaluationResult(success, reason);
+    }
+
+    private MissionFailureReason extractFailureReason(String geminiResponse) {
+        int idx = geminiResponse.indexOf(':');
+        if (idx < 0 || idx + 1 >= geminiResponse.length()) return null;
+
+        String code = geminiResponse.substring(idx + 1);
+        return missionFailureReasonRepository.findByCode(code).orElse(null);
+    }
+
+    private void applyMissionResult(Mission mission, Image image, MissionEvaluationResult eval) {
+        mission.setCompleted(eval.success());
+        mission.setImage(image);
+        mission.setFailureReason(eval.failureReason());
+        missionRepository.save(mission);
+    }
+
+    private void rewardIfSuccess(User user, Mission mission, boolean success) {
+        if (!success) return;
+        mileageWriter.earn(
+            user.getId(),
+            MISSION_REWARD_POINTS,
+            LocalDateTime.now().plusYears(1),
+            MileageLogReferenceType.MISSION,
+            mission.getId()
+        );
+        log.info("마일리지 적립 완료. 사용자 ID: {}", user.getId());
+    }
+
+    private Optional<Mission> findNextActiveMission(User user) {
+        return missionRepository.findFirstByUserAndCompletedFalseAndExplorationEndedFalseOrderByCreatedAtAsc(user);
+    }
+
+    private void replenishMissionsIfNeeded(User user, Market market) {
+        long remaining = missionRepository.countByUserAndCompletedFalse(user);
+        if (remaining >= MIN_REMAINING_MISSIONS) return;
+
+        log.info("미션 재고가 부족합니다 ({}개 남음). 새 미션 {}개를 생성합니다.", remaining, REPLENISH_MISSION_COUNT);
+
+        List<Integer> doneNumbers = missionRepository.findByUserAndCompletedTrue(user)
+            .stream().map(Mission::getMissionNumbers).toList();
+
+        List<MasterMission> masters = getRandomMasterMissions(REPLENISH_MISSION_COUNT, doneNumbers);
+        if (masters.isEmpty()) return;
+
+        LocalDateTime now = LocalDateTime.now();
+        List<Mission> newMissions = masters.stream()
+            .map(mm -> buildMissionEntity(mm, user, market, now))
+            .toList();
+
+        missionRepository.saveAll(newMissions);
     }
 
     private MissionResponse toResponse(Mission mission) {
-        if (mission == null) {
-            throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
-        }
+        if (mission == null) throw new MissionException(MissionErrorCode.MISSION_NOT_FOUND);
+
         String failureReason = mission.getFailureReason() != null ? mission.getFailureReason().getReason() : null;
-        String imageUrl = (mission.getImage() != null) ? mission.getImage().getImageUrl() : null;
+        String imageUrl = mission.getImage() != null ? mission.getImage().getImageUrl() : null;
+
         return new MissionResponse(
             mission.getId(),
             mission.getCategory(),
@@ -340,4 +357,18 @@ public class MissionService {
             imageUrl
         );
     }
+
+    private List<MasterMission> getRandomMasterMissions(int count, List<Integer> excludedMissionNumbers) {
+        long total = masterMissionRepository.count();
+
+        if (excludedMissionNumbers.isEmpty()) {
+            return masterMissionRepository.findRandomMissionsWithoutExclusion(count);
+        }
+        if (total < count + excludedMissionNumbers.size()) {
+            log.warn("새로운 미션을 생성하기 위한 미션이 부족합니다. (총: {}개, 제외 대상: {}개)", total, excludedMissionNumbers.size());
+        }
+        return masterMissionRepository.findRandomMissions(count, excludedMissionNumbers);
+    }
+
+    private record MissionEvaluationResult(boolean success, MissionFailureReason failureReason) {}
 }

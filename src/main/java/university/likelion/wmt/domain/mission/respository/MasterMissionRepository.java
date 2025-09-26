@@ -13,13 +13,14 @@ public interface MasterMissionRepository extends JpaRepository<MasterMission, Lo
     @Query(value =
         "SELECT * FROM master_mission " +
             "WHERE mission_numbers" +
-            " NOT IN (:completedMissionNumbers) " +
+            " NOT IN (:excludedMissionNumbers) " +
             "ORDER BY RAND() LIMIT :count",
         nativeQuery = true)
     List<MasterMission> findRandomMissions(
         @Param("count") int count,
-        @Param("completedMissionNumbers") List<Integer> completedMissionNumbers
+        @Param("excludedMissionNumbers") List<Integer> excludedMissionNumbers
     );
+
     // 완료된 미션 없을 때 ex) 제일 처음 미션 생성할때
     @Query(value =
     "SELECT * FROM master_mission " +

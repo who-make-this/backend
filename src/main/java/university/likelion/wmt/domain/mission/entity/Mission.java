@@ -81,13 +81,22 @@ public class Mission {
     @Column(name = "missionNumbers", nullable = false)
     private Integer missionNumbers;
 
+    @Column(name = "is_exploration_end", nullable = false)
+    private boolean explorationEnded = false;
+
     @Builder
-    public Mission(User user, Market market, String category,
-                   String missionTitle, String content,
-                   boolean completed, LocalDateTime createdAt,
-                   Long reportId, Image image,
-                   MissionFailureReason failureReason,
-                   Integer missionNumbers) {
+    public Mission(User user,
+        Market market,
+        String category,
+        String missionTitle,
+        String content,
+        boolean completed,
+        LocalDateTime createdAt,
+        Long reportId,
+        Image image,
+        MissionFailureReason failureReason,
+        Integer missionNumbers,
+        boolean explorationEnded) {
         this.user = user;
         this.market = market;
         this.category = category;
@@ -99,5 +108,6 @@ public class Mission {
         this.image = image;
         this.failureReason = failureReason;
         this.missionNumbers = missionNumbers;
+        this.explorationEnded = explorationEnded;
     }
 }
