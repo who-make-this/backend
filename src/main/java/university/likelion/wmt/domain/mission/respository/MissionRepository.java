@@ -23,22 +23,19 @@ public interface MissionRepository extends JpaRepository<Mission, Long> {
     long countByUserAndCompletedFalse(User user);
 
     // 특정 유저의 완료되지 않은 미션 중 가장 첫 번째 미션을 반환
-    Optional<Mission> findFirstByUserAndCompletedFalseAndExplorationEndedFalseOrderByCreatedAtAsc(User user);
-
+    Optional<Mission> findFirstByUserAndCompletedFalseOrderByCreatedAtAsc(User user);
     // 특정 유저의 완료된 모든 미션 목록을 반환
+
     @EntityGraph(attributePaths = "image")
     List<Mission> findByUserAndCompletedTrue(User user);
 
     List<Mission> findByUserAndCompletedTrueAndReportIdNull(User user);
 
-    List<Mission> findByUserAndCompletedFalseAndExplorationEndedFalse(User user);
-
     // 특정 유저의 완료되지 않은 미션만 삭제
     void deleteByUserAndCompletedFalse(User user);
 
     // 특정 유저의 완료된 미션을 카테고리별로 찾아 반환
-    @Query("SELECT m FROM Mission m WHERE m.user = :user AND m.category = :category AND m.completed = true AND m.explorationEnded = false")
-    List<Mission> findByUserAndCategoryAndCompletedTrueAndIsExplorationEndedFalse(User user, String category);
+    List<Mission> findByUserAndCategoryAndCompletedTrue(User user, String category);
 
     @Query("SELECT COUNT(m) FROM Mission m WHERE m.user = :user AND m.completed = true")
     long countByUserAndCompletedTrue(@Param("user") User user);
@@ -48,13 +45,8 @@ public interface MissionRepository extends JpaRepository<Mission, Long> {
     @Query("SELECT COUNT(m) FROM Mission m WHERE m.user = :user AND m.market = :market AND m.completed = true")
     long countByUserAndCompletedTrue(@Param("user") User user, @Param("market") Market market);
 
-    // 특정 유저의 가장 먼저 생성된 미션의 생성 시간을 반환
+    //특정 유저의 가장 먼저 생성된 미션의 생성 시간을 반환
     Optional<LocalDateTime> findFirstByUserOrderByCreatedAtAsc(User user);
-
-    List<Mission> findByUserAndCompletedTrueAndCreatedAtGreaterThanEqual(User user, LocalDateTime createdAt);
-
-    List<Mission> findTop10ByUserAndCompletedFalseAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(User user,
-        LocalDateTime createdAt);
 
     List<Mission> findByReportId(Long reportId);
 
