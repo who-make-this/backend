@@ -37,6 +37,8 @@ public interface MissionRepository extends JpaRepository<Mission, Long> {
     // 특정 유저의 완료된 미션을 카테고리별로 찾아 반환
     List<Mission> findByUserAndCategoryAndCompletedTrue(User user, String category);
 
+    List<Mission> findByUserAndCategoryAndCompletedTrueAndReportIdNull(User user, String category);
+
     @Query("SELECT COUNT(m) FROM Mission m WHERE m.user = :user AND m.completed = true")
     long countByUserAndCompletedTrue(@Param("user") User user);
 

@@ -82,12 +82,17 @@ public class Mission {
     private Integer missionNumbers;
 
     @Builder
-    public Mission(User user, Market market, String category,
-                   String missionTitle, String content,
-                   boolean completed, LocalDateTime createdAt,
-                   Long reportId, Image image,
-                   MissionFailureReason failureReason,
-                   Integer missionNumbers) {
+    public Mission(User user,
+        Market market,
+        String category,
+        String missionTitle,
+        String content,
+        boolean completed,
+        LocalDateTime createdAt,
+        Long reportId,
+        Image image,
+        MissionFailureReason failureReason,
+        Integer missionNumbers) {
         this.user = user;
         this.market = market;
         this.category = category;

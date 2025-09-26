@@ -264,7 +264,7 @@ public class MissionService {
     @Transactional(readOnly = true)
     public List<MissionResponse> getCompletedMissionsByCategory(Long userId, String category) {
         User user = findUserById(userId);
-        List<Mission> completedMissions = missionRepository.findByUserAndCategoryAndCompletedTrue(user, category);
+        List<Mission> completedMissions = missionRepository.findByUserAndCategoryAndCompletedTrueAndReportIdNull(user, category);
         return completedMissions.stream()
             .map(this::toResponse)
             .collect(Collectors.toList());
