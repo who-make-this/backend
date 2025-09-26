@@ -167,11 +167,15 @@ public class MissionService {
         log.info("사용자 탐험 종료 처리. 사용자: {}", userId);
         User user = findUserOrThrow(userId);
 
-        long done = missionRepository.countByUserAndCompletedTrueAndReportIdNull(user);
+        List<Mission> doneMission = missionRepository.findByUserAndCompletedTrueAndReportIdNull(user);
+        long done = doneMission.size();
         log.info("현재 수행한 미션의 개수는 {}개입니다.", done);
         if (done == 0) throw new MissionException(MissionErrorCode.MISSION_NOT_COMPLETED);
 
         missionRepository.deleteByUserAndCompletedFalse(user); // 미완료 미션 정리
+        for (Mission mission : doneMission) {
+            mission.setExplorationEnded(true);
+        }
     }
 
     @Transactional(readOnly = true)
