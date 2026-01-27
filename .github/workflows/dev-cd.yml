@@ -1,19 +1,16 @@
-name: CD with Docker
+name: CD (no CI) with Docker
 
 on:
-  workflow_run:
-    workflows: ["Java CI with Gradle"]
-    types: [completed]
+  push:
     branches: ["main"]
   workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
-  actions: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -23,30 +20,29 @@ env:
 
 jobs:
   build:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
-
     outputs:
       image-tag: ${{ steps.normalize.outputs.image_tag }}
 
     steps:
-      # config(private) 서브모듈까지 체크아웃 → Docker build context에 포함
       - name: Checkout (with submodules)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
-          # private submodule 접근 토큰(서브모듈 repo에도 read 권한 필요)
           token: ${{ secrets.ACTION_TOKEN }}
 
-      # 이전(Java CI with Gradle) 워크플로우 산출물(JAR) 다운로드
-      - name: Download build artifact (jar)
-        uses: actions/download-artifact@v4
-        with:
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.ACTION_TOKEN }}
-          name: build-libs
-          path: build/libs
+      # ====== DEBUG: workspace / context 확인 ======
+      - name: Debug workspace paths
+        shell: bash
+        run: |
+          set -euxo pipefail
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          pwd
+          ls -al
+          find . -maxdepth 3 -type f | sed -n '1,200p'
+          du -ah . | head -n 80
+      # ===========================================
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -90,11 +86,13 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile
+          context: ${{ github.workspace }}
+          file: ${{ github.workspace }}/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # arm64 서버 전용이면 아래 한 줄만 권장
+          # platforms: linux/arm64
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -104,14 +102,13 @@ jobs:
     runs-on: [self-hosted]
 
     env:
-      # A의 기존 변수 유지
       CONTAINER_NAME: ${{ vars.DEV_CONTAINER_BASE }}
       NETWORK_NAME: ${{ vars.DEV_NETWORK_NAME }}
 
       HOST_WEB_PORT: ${{ secrets.DEV_APPLICATION_PORT }}
       APP_PORT: 8080
 
-      PROFILE: DEV_PROFILE
+      PROFILE: ${{ vars.DEV_PROFILE }}
       TZ: Asia/Seoul
 
     steps:
@@ -192,6 +189,6 @@ jobs:
             --security-opt apparmor=unconfined \
             -p "${HOST_WEB_PORT}:${APP_PORT}" \
             --add-host=host.docker.internal:host-gateway \
-            -e "USE_PROFILE=${PROFILE}" \
+            -e "SPRING_PROFILES_ACTIVE=${PROFILE}" \
             -e "TZ=${TZ}" \
             "${{ needs.build.outputs.image-tag }}"
