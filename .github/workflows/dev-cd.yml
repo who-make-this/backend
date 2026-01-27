@@ -32,17 +32,20 @@ jobs:
           submodules: recursive
           token: ${{ secrets.ACTION_TOKEN }}
 
-      # ====== DEBUG: workspace / context 확인 ======
-      - name: Debug workspace paths
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Build jar (Gradle)
         shell: bash
         run: |
-          set -euxo pipefail
-          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-          pwd
-          ls -al
-          find . -maxdepth 3 -type f | sed -n '1,200p'
-          du -ah . | head -n 80
-      # ===========================================
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew --no-daemon clean bootJar
+          ls -al build/libs
+          ls -al build/libs/*.jar
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -91,9 +94,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # arm64 서버 전용이면 아래 한 줄만 권장
-          # platforms: linux/arm64
-          platforms: linux/amd64,linux/arm64
+          # arm64 서버 전용이면 권장
+          platforms: linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -105,7 +107,7 @@ jobs:
       CONTAINER_NAME: ${{ vars.DEV_CONTAINER_BASE }}
       NETWORK_NAME: ${{ vars.DEV_NETWORK_NAME }}
 
-      HOST_WEB_PORT: ${{ secrets.DEV_APPLICATION_PORT }}
+      HOST_WEB_PORT: ${{ vars.DEV_APPLICATION_PORT }}
       APP_PORT: 8080
 
       PROFILE: ${{ vars.DEV_PROFILE }}
