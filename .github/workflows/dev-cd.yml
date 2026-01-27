@@ -2,59 +2,92 @@ name: CD with Docker
 
 on:
   workflow_run:
-    workflows: [ "Java CI with Gradle" ]
-    types: [ completed ]
-    branches: [ "main" ]
+    workflows: ["Java CI with Gradle"]
+    types: [completed]
+    branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/${{ github.repository }}
+  TZ: Asia/Seoul
 
 jobs:
   build:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
+
     outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
+      image-tag: ${{ steps.normalize.outputs.image_tag }}
 
     steps:
-      # 도커 이미지 빌드를 위한 빌드 파일 내려 받기
-      - name: Download artifact
+      # config(private) 서브모듈까지 체크아웃 → Docker build context에 포함
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          # private submodule 접근 토큰(서브모듈 repo에도 read 권한 필요)
+          token: ${{ secrets.ACTION_TOKEN }}
+
+      # 이전(Java CI with Gradle) 워크플로우 산출물(JAR) 다운로드
+      - name: Download build artifact (jar)
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.ACTION_TOKEN }}
           name: build-libs
+          path: build/libs
 
-      # 도커 이미지 빌드를 위한 Docker Buildx 내려 받기
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver: docker-container
-          driver-opts: |
-            network=host
+          driver-opts: network=host
 
-      # 도커 이미지 업로드를 위한 GitHub Container Registry 로그인
-      # https://docs.github.com/ko/packages/working-with-a-github-packages-registry/working-with-the-container-registry
-      - name: Login to Github Container Registry
+      - name: Login to GHCR (docker)
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          # 개인 사용자 토큰의 소유자가 변경되면 이 설정 파일을 다시 커밋하여
-          # GitHub Actions 최초 실행 사용자를 변경해야 합니다.
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.ACTION_TOKEN }}
 
-      # 메타 데이터를 추출해 이미지 태그 및 레이블 생성
-      - name: Extract metadata
+      - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ env.IMAGE }}
           tags: |
             type=sha
 
-      - name: Build and Push Docker image
+      - name: Normalize image tag
+        id: normalize
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE_TAG="$(
+            printf "%s" "${{ steps.meta.outputs.tags }}" \
+              | tr ',' '\n' \
+              | sed '/^[[:space:]]*$/d' \
+              | head -n 1
+          )"
+          if [ -z "${IMAGE_TAG}" ]; then
+            echo "IMAGE_TAG is empty."
+            exit 1
+          fi
+          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> "$GITHUB_ENV"
+
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -68,38 +101,97 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: [ self-hosted ]
+    runs-on: [self-hosted]
+
+    env:
+      # A의 기존 변수 유지
+      CONTAINER_NAME: ${{ vars.DEV_CONTAINER_BASE }}
+      NETWORK_NAME: ${{ vars.DEV_NETWORK_NAME }}
+
+      HOST_WEB_PORT: ${{ secrets.DEV_APPLICATION_PORT }}
+      APP_PORT: 8080
+
+      PROFILE: DEV_PROFILE
+      TZ: Asia/Seoul
+
     steps:
-      # Docker 이미지 내려 받기를 위한 GHCR 로그인
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.ACTION_TOKEN }}
-
-      # 이미지 내려 받기
-      - name: Pull latest image
-        run: docker pull ${{ needs.build.outputs.image-tag }}
-
-      # 실행 중인 컨테이너 정리 및 기존 이미지 삭제
-      - name: Clean up old container and image
+      - name: Prepare rootless nerdctl env
+        shell: bash
         run: |
-          docker rm -f ${{ vars.CONTAINER_NAME }} || true
-          docker images "ghcr.io/${{ github.repository }}" \
-          --format "{{.Repository}}:{{.Tag}}" \
-          | grep -v "${{ needs.build.outputs.image-tag }}" \
-          | xargs -r docker rmi -f || true
+          set -euo pipefail
+          echo "/usr/local/bin" >> "$GITHUB_PATH"
+          echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
 
-      # 새로운 이미지로 새로운 컨테이너 생성하여 실행
-      - name: Run New Container
+      - name: Login to GHCR (nerdctl)
+        shell: bash
         run: |
-          docker run -d \
-            --name ${{ vars.CONTAINER_NAME }} \
-            --network ${{ vars.NETWORK_NAME }} \
-            -p ${{ secrets.DEV_WEB_PORT }}:8080 \
+          set -euo pipefail
+          echo "${{ secrets.ACTION_TOKEN }}" \
+            | nerdctl login "${REGISTRY}" -u "${{ github.actor }}" --password-stdin
+
+      - name: Pull image
+        shell: bash
+        run: |
+          set -euo pipefail
+          nerdctl pull "${{ needs.build.outputs.image-tag }}"
+
+      - name: Ensure network exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          nerdctl network inspect "${NETWORK_NAME}" >/dev/null 2>&1 \
+            || nerdctl network create "${NETWORK_NAME}"
+
+      - name: Stop old container (if exists)
+        shell: bash
+        run: |
+          set -euo pipefail
+          nerdctl rm -f "${CONTAINER_NAME}" || true
+
+      - name: Remove old images (keep latest 3)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t KEEP_IMAGES < <(
+            nerdctl images "${IMAGE}" --format "{{.CreatedAt}}\t{{.Repository}}:{{.Tag}}" \
+              | grep -v ":<none>" \
+              | sort -r \
+              | head -n 3 \
+              | awk '{print $2}'
+          )
+
+          if [ "${#KEEP_IMAGES[@]}" -eq 0 ]; then
+            echo "No images to clean."
+            exit 0
+          fi
+
+          nerdctl images "${IMAGE}" --format "{{.Repository}}:{{.Tag}}" \
+            | grep -v ":<none>" \
+            | while read -r IMG; do
+                KEEP=false
+                for K in "${KEEP_IMAGES[@]}"; do
+                  if [ "${IMG}" = "${K}" ]; then
+                    KEEP=true
+                    break
+                  fi
+                done
+                if [ "${KEEP}" = "false" ]; then
+                  nerdctl rmi -f "${IMG}" || true
+                fi
+              done
+
+      - name: Run new container (nerdctl)
+        shell: bash
+        run: |
+          set -euo pipefail
+          nerdctl run -d \
+            --name "${CONTAINER_NAME}" \
+            --network "${NETWORK_NAME}" \
+            --restart always \
+            --security-opt apparmor=unconfined \
+            -p "${HOST_WEB_PORT}:${APP_PORT}" \
             --add-host=host.docker.internal:host-gateway \
-            --mount type=bind,src="${{ secrets.RDB_CERT_SRC }}",dst="${{ secrets.RDB_CERT_DST }}",ro \
-            -e USE_PROFILE=dev \
-            -e TZ=Asia/Seoul \
-            ${{ needs.build.outputs.image-tag }}
+            -e "USE_PROFILE=${PROFILE}" \
+            -e "TZ=${TZ}" \
+            "${{ needs.build.outputs.image-tag }}"
