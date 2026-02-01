@@ -37,7 +37,7 @@ public class DiaryGeminiService {
         try {
             String weatherPrompt = String.format("대한민국 구미시의 %s 날씨는 어때? 날씨 정보만 한 문장으로 간결하게 답변해줘.", date.toString());
             String geminiApiUrl =
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key="
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="
                     + apiKey;
 
             String payload = objectMapper.writeValueAsString(
@@ -97,7 +97,7 @@ public class DiaryGeminiService {
             String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
             String geminiApiUrl =
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key="
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="
                     + apiKey;
             String payload = objectMapper.writeValueAsString(
                 new Object() {
